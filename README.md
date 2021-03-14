@@ -1,6 +1,6 @@
 # 3D tile content inspector
 
-Inspector for [3D tile content](https://github.com/CesiumGS/3d-tiles/blob/master/specification/README.md#tile-format-specifications).
+[3D tile content](https://github.com/CesiumGS/3d-tiles/blob/master/specification/README.md#tile-format-specifications) inspector.
 
 ![screenshot.png](docs/screenshot.png)
 
