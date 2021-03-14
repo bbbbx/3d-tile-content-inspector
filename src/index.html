@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>3d tile content inspector</title>
+  <!-- <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" /> -->
+  <script src="./thirdParty/codemirror-5.59.4/lib/codemirror.js"></script>
+  <link rel="stylesheet" href="./thirdParty/codemirror-5.59.4/lib/codemirror.css">
+  <script src="./thirdParty/codemirror-5.59.4/mode/javascript/javascript.js"></script>
+
+
+  <link rel="stylesheet" href="./thirdParty/codemirror-5.59.4/addon/fold/foldgutter.css">
+  <script src="./thirdParty/codemirror-5.59.4/addon/fold/foldcode.js"></script>
+  <script src="./thirdParty/codemirror-5.59.4/addon/fold/foldgutter.js"></script>
+  <script src="./thirdParty/codemirror-5.59.4/addon/fold/brace-fold.js"></script>
+  <script src="./thirdParty/codemirror-5.59.4/addon/fold/comment-fold.js"></script>
+
+  <script src="./constructHexViewer.js"></script>
+  <script src="./hexdrump.js"></script>
+  <script src="./parsePnts.js"></script>
+  <script src="./toHexString.js"></script>
+
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div id="ui">
+    You can load .pnts tile content from
+    <label for="url">URL: </label>
+    <input type="text" id="url">
+    <!-- value="/sampleData/0.pnts" -->
+    or
+    <input type="file" id="file" accept=".pnts">
+    from local file system, then
+    <button id="inspect">Inspect</button> it.
+
+    <p>NOTE: only show 100 records for feature table and batch table.</p>
+    <div id="info"></div>
+    <div id="error"></div>
+  </div>
+  <div id="jsonViewer"></div>
+  <div id="hexViewer"></div>
+
+  <!-- fork on github -->
+  <div id="forkongithub">
+    <div>
+      <div>
+        <a href="https://github.com/bbbbx/3d-tile-content-inspector" target="blank">Fix, Fork, Contribute <img src="./image/octocat-icon.svg" alt="octocat-icon.svg"></a>
+      </div>
+    </div>
+  </div>
+
+  <script src="./index.js"></script>
+</body>
+</html>
