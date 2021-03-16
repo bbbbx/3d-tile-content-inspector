@@ -2,30 +2,50 @@ const infoElem = document.getElementById('info');
 const errorElem = document.getElementById('error');
 const jsonViewer = document.getElementById('jsonViewer');
 const hexViewer = document.getElementById('hexViewer');
+const ui = document.getElementById('ui');
 const fileElem = document.getElementById('file');
 
-fileElem.addEventListener('click', event => {
-  fileElem.value = '';
-})
-fileElem.addEventListener('change', event => {
-  const files = event.target.files;
-  const file = files[0];
+function inspectFile(file) {
+  infoElem.innerText = 'Loading...';
 
   const fileReader = new FileReader();
   fileReader.onload = function(event) {
     if (fileReader.readyState === FileReader.DONE){
       const arrayBuffer = fileReader.result;
-
       inspect(arrayBuffer);
     }
   };
-
   fileReader.readAsArrayBuffer(file);
+}
+
+ui.addEventListener('drop', ev => {
+  ev.preventDefault();
+
+  let file;
+  if (ev.dataTransfer.items && ev.dataTransfer.items.length > 0) {
+    file = ev.dataTransfer.items[0].getAsFile();
+  } else if (ev.dataTransfer.files && ev.dataTransfer.files.length > 0) {
+    file = ev.dataTransfer.files[0];
+  }
+
+  if (file) {
+    inspectFile(file);
+  }
+});
+
+fileElem.addEventListener('click', function() {
+  fileElem.value = '';
+});
+fileElem.addEventListener('change', function(event) {
+  const files = event.target.files;
+  const file = files[0];
+
+  inspectFile(file);
 });
 
 const urlElem = document.getElementById('url');
 const inspectElem = document.getElementById('inspect');
-inspectElem.addEventListener('click', () => {
+inspectElem.addEventListener('click', function() {
   const url = urlElem.value;
   inspectFromUrl(url);
 });
@@ -33,65 +53,6 @@ inspectElem.addEventListener('click', () => {
 function fetchArrayBuffer(url) {
   return fetch(url)
     .then(r => r.arrayBuffer());
-}
-
-const getNumberOfComponent = {
-  SCALAR: 1,
-  VEC2: 2,
-  VEC3: 3,
-  VEC4: 4,
-};
-const getComponentType = {
-  BYTE: Int8Array,
-  UNSIGNED_BYTE: Uint8Array,
-  SHORT: Int16Array,
-  UNSIGNED_SHORT: Uint16Array,
-  INT: Int32Array,
-  UNSIGNED_INT: Uint32Array,
-  FLOAT: Float32Array,
-  DOUBLE: Float64Array,
-};
-
-const featureTableSemantics = {
-  POSITION: {
-    componentType: 'FLOAT',
-    type: 'VEC3',
-  },
-  POSITION_QUANTIZED: {
-    componentType: 'UNSIGNED_SHORT',
-    type: 'VEC3',
-  },
-  RGBA: {
-    componentType: 'UNSIGNED_BYTE',
-    type: 'VEC4',
-  },
-  RGB: {
-    componentType: 'UNSIGNED_BYTE',
-    type: 'VEC3',
-  },
-  RGB565: {
-    componentType: 'UNSIGNED_SHORT',
-    type: 'SCALAR',
-  },
-  NORMAL: {
-    componentType: 'FLOAT',
-    type: 'VEC3',
-  },
-  BATCH_ID: {
-    // uint8, uint16 (default), or uint32
-    componentType: 'UNSIGNED_SHORT',
-    type: 'SCALAR',
-  }
-}
-
-function getBufferBySemantics(buffer, offset, componentType, type, batchLength) {
-  const numberOfComponent = getNumberOfComponent[type];
-  const constructor = getComponentType[componentType];
-  const sizeInBytes = constructor.BYTES_PER_ELEMENT;
-
-  const byteLength = sizeInBytes * numberOfComponent * batchLength;
-  const offsetBuffer = new constructor(buffer.slice(offset, offset + byteLength));
-  return offsetBuffer;
 }
 
 function defaultValue(a, b) {
@@ -105,10 +66,10 @@ function inspectFromUrl(url) {
   infoElem.innerText = 'Loading...';
 
   fetchArrayBuffer(url)
-    .then(arrayBuffer => {
+    .then(function(arrayBuffer) {
       inspect(arrayBuffer);
     })
-    .catch(error => {
+    .catch(function(error) {
       infoElem.innerText = '';
       errorElem.innerText = 'Failed: ' + error.message;
     })
@@ -116,129 +77,38 @@ function inspectFromUrl(url) {
 
 function inspect(arrayBuffer) {
 
-  infoElem.innerText = 'Parsing...';
   errorElem.innerText = '';
 
   // ----- For hex viewer -----
+  infoElem.innerText = 'Parsing...';
   const hex = hexdrump(arrayBuffer);
   constructHexViewer(hex, hexViewer);
 
-  // ----- For json viewer -----
-  const pnts = parsePnts(arrayBuffer);
-  const {
-    magic,
-    version,
-    byteLength,
-    featureTableJsonByteLength,
-    featureTableBinaryByteLength,
-    batchTableJsonByteLength,
-    batchTableBinaryByteLength,
+  const textDecoder = new TextDecoder('utf8');
+  const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
 
-    featureTableJson,
-    featureTableBinary,
-    batchTableJson,
-    batchTableBinary,
-  } = pnts;
-
-  if (magic !== 'pnts') {
-    errorElem.innerText = 'Magic number is NOT \'pnts\', current is ' + magic + '.';
-    return;
+  if (magic === 'pnts') {
+    inspectPnts(arrayBuffer);
+  } else if (magic === 'cmpt') {
+    inspectCmpt(arrayBuffer);
+  } else if (magic === 'b3dm') {
+    inspectB3dm(arrayBuffer);
+  } else if (magic === 'i3dm') {
+    inspectI3dm(arrayBuffer);
+  } else {
+    infoElem.innerText = '';
+    errorElem.innerText = 'Unsupported format: ' + magic;
   }
 
-  if (version !== 1) {
-    errorElem.innerText = 'Version is NOT 1.0, current is ' + version + '.';
-    return;
-  }
+}
 
-  const headerByteLength = 28;
-  const expectedByteLength = headerByteLength + featureTableJsonByteLength + featureTableBinaryByteLength + batchTableJsonByteLength + batchTableBinaryByteLength;
-  if (byteLength !== expectedByteLength) {
-    errorElem.innerText = 'pnts content bytes length is NOT equals byteLength field.';
-  }
-
-  // FIXME: Pack feature table, up to 100 records can be displayed.
-  const pointsLength = Math.min(featureTableJson.POINTS_LENGTH, 100);
-  for (const key of Object.keys(featureTableJson)) {
-    if (featureTableJson.hasOwnProperty(key)) {
-      const semantics = featureTableSemantics[key];
-      if (!semantics) {
-        continue;
-      }
-
-      const featureTableBinary = pnts.featureTableBinary;
-      const featureTableBuffer = featureTableBinary.buffer.slice(
-        featureTableBinary.byteOffset,
-        featureTableBinary.byteOffset + featureTableBinary.byteLength
-      );
-
-      const byteOffset = pnts.featureTableJson[key].byteOffset;
-      // BATCH_ID may have componentType definition.
-      const componentType = key === 'BATCH_ID' && featureTableJson[key].componentType
-        ? featureTableJson[key].componentType
-        : semantics.componentType;
-      const type = semantics.type;
-
-      const fieldBuffer = getBufferBySemantics(
-        featureTableBuffer,
-        byteOffset,
-        componentType,
-        type,
-        pointsLength
-      );
-
-      const fieldValue = [];
-      for (let i = 0; i < pointsLength; i++) {
-        const numberOfComponent = getNumberOfComponent[type];
-
-        fieldValue[i] = [];
-        for (let j = 0; j < numberOfComponent; j++) {
-          const component = fieldBuffer[i * numberOfComponent + j];
-          fieldValue[i].push(component);
-        }
-      }
-      pnts[key] = fieldValue;
-    }
-  }
-
-  // Pack batch table, up to 100 records can be displayed.
-  const batchLength = Math.min(defaultValue(pnts.featureTableJson.BATCH_LENGTH, pnts.featureTableJson.POINTS_LENGTH), 100);
-  for (const key of Object.keys(pnts.batchTableJson)) {
-    if (pnts.batchTableJson.hasOwnProperty(key)) {
-      const semantics = pnts.batchTableJson[key];
-
-      const batchTableBinary = pnts.batchTableBinary;
-      const batchTableBuffer = batchTableBinary.buffer.slice(
-        batchTableBinary.byteOffset,
-        batchTableBinary.byteOffset + batchTableBinary.byteLength
-      );
-
-      const fieldBuffer = getBufferBySemantics(batchTableBuffer, semantics.byteOffset, semantics.componentType, semantics.type, batchLength);
-
-      const fieldValue = [];
-      for (let i = 0; i < batchLength; i++) {
-        const numberOfComponent = getNumberOfComponent[semantics.type];
-
-        fieldValue[i] = [];
-        for (let j = 0; j < numberOfComponent; j++) {
-          const component = fieldBuffer[i * numberOfComponent + j];
-          fieldValue[i].push(component);
-        }
-      }
-
-      pnts[key] = fieldValue;
-    }
-  }
-
-  // delete array buffer
-  delete pnts.featureTableBinary;
-  delete pnts.batchTableBinary;
-
+function constructJsonView(object) {
   // use CodeMirror to show JSON
-  const stringifyPnts = JSON.stringify(pnts, null, 4);
+  const stringifyObject = JSON.stringify(object, null, 4);
 
   jsonViewer.innerHTML = '';
   const myCodeMirror = CodeMirror(jsonViewer, {
-    value: stringifyPnts,
+    value: stringifyObject,
     mode: {
       name: 'javascript',
       json: true,
@@ -276,8 +146,89 @@ function inspect(arrayBuffer) {
     },
     fullScreen:true
   });
+}
+
+function extractFeatureTableAndBatchTable(parsedTile) {
+  const { tableObject: featureTable, featureLength } = parseFeatureTableOrBatchTable(parsedTile.featureTableJson, parsedTile.featureTableBinary);
+  const { tableObject: batchTable } = parseFeatureTableOrBatchTable(parsedTile.batchTableJson, parsedTile.batchTableBinary, featureLength);
+
+  parsedTile = {
+    ...parsedTile,
+    ...featureTable,
+    ...batchTable,
+  };
+  delete parsedTile.featureTableBinary;
+  delete parsedTile.batchTableBinary;
+
+  return parsedTile;
+}
+
+function inspectB3dm(arrayBuffer) {
+  let b3dm = parseB3dm(arrayBuffer);
+
+  b3dm = extractFeatureTableAndBatchTable(b3dm);
+  constructJsonView(b3dm);
+
+  infoElem.innerText = 'Done';
+  errorElem.innerText = '';
+}
+
+function inspectI3dm(arrayBuffer) {
+  let i3dm = parseI3dm(arrayBuffer);
+
+  i3dm = extractFeatureTableAndBatchTable(i3dm);
+  constructJsonView(i3dm);
+
+  infoElem.innerText = 'Done';
+  errorElem.innerText = '';
+}
+
+function inspectPnts(arrayBuffer) {
+
+  let pnts = parsePnts(arrayBuffer);
+  validatePntsByteLength(pnts);
+  pnts = extractFeatureTableAndBatchTable(pnts);
+
+  constructJsonView(pnts);
 
   infoElem.innerText = 'Done';
   errorElem.innerText = '';
 
+}
+
+function inspectCmpt(arrayBuffer) {
+  const cmpt = parseCmpt(arrayBuffer);
+
+  const tiles = cmpt.tiles;
+  const tilesLength = cmpt.tilesLength;
+  for (let i = 0; i < tilesLength; i++) {
+    let tile = tiles[i];
+    if (tile.magic === 'pnts') {
+      validatePntsByteLength(tile);
+    }
+
+    tile = extractFeatureTableAndBatchTable(tile);
+    tiles[i] = tile;
+  }
+
+  constructJsonView(cmpt);
+
+  infoElem.innerText = 'Done';
+  errorElem.innerText = '';
+}
+
+function validatePntsByteLength(tile) {
+  const headerByteLength = 28;
+  const {
+    magic,
+    byteLength,
+    featureTableJsonByteLength,
+    featureTableBinaryByteLength,
+    batchTableJsonByteLength,
+    batchTableBinaryByteLength
+  } = tile;
+  const expectedByteLength = headerByteLength + featureTableJsonByteLength + featureTableBinaryByteLength + batchTableJsonByteLength + batchTableBinaryByteLength;
+  if (byteLength !== expectedByteLength) {
+    alert(magic + ' content bytes length is NOT equals byteLength field.');
+  }
 }

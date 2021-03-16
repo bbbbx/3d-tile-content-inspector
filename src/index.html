@@ -17,19 +17,23 @@
 
   <script src="./constructHexViewer.js"></script>
   <script src="./hexdrump.js"></script>
-  <script src="./parsePnts.js"></script>
   <script src="./toHexString.js"></script>
+  <script src="./parsePnts.js"></script>
+  <script src="./parseB3dm.js"></script>
+  <script src="./parseI3dm.js"></script>
+  <script src="./parseCmpt.js"></script>
+  <script src="./parseFeatureTableOrBatchTable.js"></script>
 
   <link rel="stylesheet" href="./style.css">
 </head>
 <body>
   <div id="ui">
-    You can load .pnts tile content from
+    You can load tile content(.pnts, .b3dm, .i3dm, .cmpt) from
     <label for="url">URL: </label>
     <input type="text" id="url">
     <!-- value="/sampleData/0.pnts" -->
     or
-    <input type="file" id="file" accept=".pnts">
+    <input type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt">
     from local file system, then
     <button id="inspect">Inspect</button> it.
 

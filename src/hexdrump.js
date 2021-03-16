@@ -1,5 +1,3 @@
-// const toHexString = require('./toHexString.js');
-
 function hexdrump(arrayBuffer) {
   const uint8Array = new Uint8Array(arrayBuffer);
   const length = uint8Array.length;
@@ -21,6 +19,3 @@ function hexdrump(arrayBuffer) {
     hexs
   };
 }
-
-// module.exports = hexdrump;
-

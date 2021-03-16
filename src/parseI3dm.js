@@ -1,61 +1,58 @@
-const BYTES_OF_UINT32 = Uint32Array.BYTES_PER_ELEMENT;
-const BYTES_OF_UINT8 = Uint8Array.BYTES_PER_ELEMENT;
+function parseI3dm(arrayBuffer) {
+  const uint8Array = new Uint8Array(arrayBuffer);
 
-function parsePnts(arraybuffer) {
-  const textDecoder = new TextDecoder('utf-8');
-  let byteOffset = 0;
+  const textDecoder = new TextDecoder('utf8');
+  const magic = textDecoder.decode(uint8Array.slice(0, 4));
 
-  const uint8Array = new Uint8Array(arraybuffer);
-  const view = new DataView(arraybuffer);
-
-  let magic = '';
-  magic += String.fromCharCode(view.getUint8(byteOffset, true));
-  byteOffset += BYTES_OF_UINT8;
-  magic += String.fromCharCode(view.getUint8(byteOffset, true));
-  byteOffset += BYTES_OF_UINT8;
-  magic += String.fromCharCode(view.getUint8(byteOffset, true));
-  byteOffset += BYTES_OF_UINT8;
-  magic += String.fromCharCode(view.getUint8(byteOffset, true));
-  byteOffset += BYTES_OF_UINT8;
-
-  if (magic !== 'pnts') {
-    throw new Error("the magic number '" + magic + "' is not 'pnts'");
+  if (magic !== 'i3dm') {
+    throw new Error('the magic number \'' + magic + '\' is not \'i3dm\'');
   }
 
+  const view = new DataView(arrayBuffer);
+  let byteOffset = 4;
+
   const version = view.getUint32(byteOffset, true);
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
   if (version !== 1) {
     throw new Error(
-      "Only Point Cloud tile version 1 is supported.  Version " +
+      "Only tile version 1 is supported.  Version " +
         version +
         " is not."
     );
   }
-  byteOffset += BYTES_OF_UINT32;
 
   const byteLength = view.getUint32(byteOffset, true);
-  byteOffset += BYTES_OF_UINT32;
-  
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
+  //
+
   const featureTableJsonByteLength = view.getUint32(byteOffset, true);
   if (featureTableJsonByteLength === 0) {
     throw new Error(
       "Feature table must have a byte length greater than zero"
     );
   }
-  byteOffset += BYTES_OF_UINT32;
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
 
   const featureTableBinaryByteLength = view.getUint32(byteOffset, true);
-  byteOffset += BYTES_OF_UINT32;
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
 
   const batchTableJsonByteLength = view.getUint32(byteOffset, true);
-  byteOffset += BYTES_OF_UINT32;
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
   const batchTableBinaryByteLength = view.getUint32(byteOffset, true);
-  byteOffset += BYTES_OF_UINT32;
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
+
+  // Indicates the format of the glTF field of the body.
+  // 0 indicates it is a uri, 1 indicates it is embedded binary glTF. 
+  const gltfFormat = view.getUint32(byteOffset, true);
+  byteOffset += Uint32Array.BYTES_PER_ELEMENT;
 
   const featureTableString = textDecoder.decode(uint8Array.slice(byteOffset, byteOffset + featureTableJsonByteLength));
   const featureTableJson = JSON.parse(featureTableString);
   byteOffset += featureTableJsonByteLength;
 
-  const featureTableBinary = new Uint8Array(arraybuffer, byteOffset, featureTableBinaryByteLength);
+  const featureTableBinary = new Uint8Array(arrayBuffer, byteOffset, featureTableBinaryByteLength);
   byteOffset += featureTableBinaryByteLength;
 
   let batchTableJson;
@@ -67,9 +64,19 @@ function parsePnts(arraybuffer) {
     byteOffset += batchTableJsonByteLength;
 
     if (batchTableBinaryByteLength > 0) {
-      batchTableBinary = new Uint8Array(arraybuffer, byteOffset, batchTableBinaryByteLength);
+      batchTableBinary = new Uint8Array(arrayBuffer, byteOffset, batchTableBinaryByteLength);
       byteOffset += batchTableBinaryByteLength;
     }
+  }
+
+  let urlOrGlb = arrayBuffer.slice(byteOffset, byteLength);
+
+  if (gltfFormat === 1) {
+    urlOrGlb = urlOrGlb;
+  } else if (gltfFormat === 0) {
+    urlOrGlb = textDecoder.decode(urlOrGlb);
+  } else {
+    console.error('i3dm: gltfFormat MUST be either 1 or 0, current is ' + gltfFormat + '.');
   }
 
   return {
@@ -80,9 +87,15 @@ function parsePnts(arraybuffer) {
     featureTableBinaryByteLength,
     batchTableJsonByteLength,
     batchTableBinaryByteLength,
+
+    gltfFormat,
+
     featureTableJson,
-    batchTableJson,
     featureTableBinary,
-    batchTableBinary
+    batchTableJson,
+    batchTableBinary,
+
+    urlOrGlb,
   };
+
 }

@@ -2,11 +2,11 @@
 
 [3D tile content](https://github.com/CesiumGS/3d-tiles/blob/master/specification/README.md#tile-format-specifications) inspector.
 
-![screenshot.png](docs/screenshot.png)
+[![screenshot.png](docs/screenshot.png)](https://3d-tile-content-inspector.netlify.app/)
 
 ## Todo
 
 - [x] .pnts
-- [ ] .b3dm
-- [ ] .i3dm
-- [ ] .cmpt
+- [x] .b3dm
+- [x] .i3dm
+- [x] .cmpt
