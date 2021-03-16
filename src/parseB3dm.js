@@ -71,6 +71,11 @@ function parseB3dm(arrayBuffer) {
     magic,
     version,
     byteLength,
+    featureTableJsonByteLength,
+    featureTableBinaryByteLength,
+    batchTableJsonByteLength,
+    batchTableBinaryByteLength,
+
     featureTableJson,
     featureTableBinary,
     batchTableJson,
