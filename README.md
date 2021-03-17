@@ -2,7 +2,7 @@
 
 [3D tile content](https://github.com/CesiumGS/3d-tiles/blob/master/specification/README.md#tile-format-specifications) inspector.
 
-[![screenshot.png](docs/screenshot.png)](https://3d-tile-content-inspector.netlify.app/)
+[![screenshot.png](docs/screenshot.png)](https://3d-tile-content-inspector.vercel.app/)
 
 ## Todo
 
