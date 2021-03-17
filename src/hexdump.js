@@ -1,4 +1,4 @@
-function hexdrump(arrayBuffer) {
+function hexDump(arrayBuffer) {
   const uint8Array = new Uint8Array(arrayBuffer);
   const length = uint8Array.length;
 

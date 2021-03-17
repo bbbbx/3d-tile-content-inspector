@@ -81,7 +81,7 @@ function inspect(arrayBuffer) {
 
   // ----- For hex viewer -----
   infoElem.innerText = 'Parsing...';
-  const hex = hexdrump(arrayBuffer);
+  const hex = hexDump(arrayBuffer);
   constructHexViewer(hex, hexViewer);
 
   const textDecoder = new TextDecoder('utf8');
