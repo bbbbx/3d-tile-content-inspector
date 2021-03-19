@@ -12,7 +12,8 @@ function inspectFile(file) {
   fileReader.onload = function(event) {
     if (fileReader.readyState === FileReader.DONE){
       const arrayBuffer = fileReader.result;
-      inspect(arrayBuffer);
+      const filename = file.name;
+      inspect(arrayBuffer, filename);
     }
   };
   fileReader.readAsArrayBuffer(file);
@@ -67,7 +68,8 @@ function inspectFromUrl(url) {
 
   fetchArrayBuffer(url)
     .then(function(arrayBuffer) {
-      inspect(arrayBuffer);
+      const filename = url.slice(url.lastIndexOf('/') + 1);
+      inspect(arrayBuffer, filename);
     })
     .catch(function(error) {
       infoElem.innerText = '';
@@ -75,7 +77,7 @@ function inspectFromUrl(url) {
     })
 }
 
-function inspect(arrayBuffer) {
+function inspect(arrayBuffer, filename) {
 
   errorElem.innerText = '';
 
@@ -92,9 +94,9 @@ function inspect(arrayBuffer) {
   } else if (magic === 'cmpt') {
     inspectCmpt(arrayBuffer);
   } else if (magic === 'b3dm') {
-    inspectB3dm(arrayBuffer);
+    inspectB3dm(arrayBuffer, filename + '.glb');
   } else if (magic === 'i3dm') {
-    inspectI3dm(arrayBuffer);
+    inspectI3dm(arrayBuffer, filename + '.glb');
   } else {
     infoElem.innerText = '';
     errorElem.innerText = 'Unsupported format: ' + magic;
@@ -163,8 +165,33 @@ function extractFeatureTableAndBatchTable(parsedTile) {
   return parsedTile;
 }
 
-function inspectB3dm(arrayBuffer) {
+function createAnchorForDownloadGlb(arrayBuffer, filename) {
+  const blob = new Blob([ arrayBuffer ]);
+  const objectURL = URL.createObjectURL(blob);
+
+  const anchor = document.createElement('a');
+  anchor.innerText = 'Click to download '+ filename;
+  anchor.setAttribute('id', 'downloadGlb');
+  anchor.setAttribute('href', objectURL);
+  anchor.setAttribute('download', filename);
+
+  // TODO: call URL.revokeObjectURL(objectURL);
+  return anchor;
+}
+
+function inspectB3dm(arrayBuffer, filename) {
   let b3dm = parseB3dm(arrayBuffer);
+
+  const oldAnchorELem = document.getElementById('downloadGlb');
+  if (oldAnchorELem) {
+    ui.removeChild(oldAnchorELem);
+  }
+
+  const anchorElem = createAnchorForDownloadGlb(b3dm.glb, filename);
+  ui.appendChild(anchorElem);
+
+  const glb = parseGlb(b3dm.glb);
+  b3dm.glb = glb;
 
   b3dm = extractFeatureTableAndBatchTable(b3dm);
   constructJsonView(b3dm);
@@ -173,8 +200,22 @@ function inspectB3dm(arrayBuffer) {
   errorElem.innerText = '';
 }
 
-function inspectI3dm(arrayBuffer) {
+function inspectI3dm(arrayBuffer, filename) {
   let i3dm = parseI3dm(arrayBuffer);
+
+  const urlOrGlb = i3dm.urlOrGlb;
+  if (urlOrGlb instanceof ArrayBuffer) {
+    const oldAnchorELem = document.getElementById('downloadGlb');
+    if (oldAnchorELem) {
+      ui.removeChild(oldAnchorELem);
+    }
+
+    const anchorElem = createAnchorForDownloadGlb(urlOrGlb, filename);
+    ui.appendChild(anchorElem);
+
+    const glb = parseGlb(urlOrGlb);
+    i3dm.urlOrGlb = glb;
+  }
 
   i3dm = extractFeatureTableAndBatchTable(i3dm);
   constructJsonView(i3dm);
