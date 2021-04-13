@@ -30,7 +30,7 @@ function parseB3dm(arrayBuffer) {
 
   const featureTableJsonByteLength = view.getUint32(byteOffset, true);
   if (featureTableJsonByteLength === 0) {
-    throw new Error(
+    console.warn(
       "Feature table must have a byte length greater than zero"
     );
   }
@@ -44,8 +44,11 @@ function parseB3dm(arrayBuffer) {
   const batchTableBinaryByteLength = view.getUint32(byteOffset, true);
   byteOffset += Uint32Array.BYTES_PER_ELEMENT;
 
-  const featureTableString = textDecoder.decode(uint8Array.slice(byteOffset, byteOffset + featureTableJsonByteLength));
-  const featureTableJson = JSON.parse(featureTableString);
+  let featureTableJson = '';
+  if (featureTableJsonByteLength !== 0) {
+    const featureTableString = textDecoder.decode(uint8Array.slice(byteOffset, byteOffset + featureTableJsonByteLength));
+    featureTableJson = JSON.parse(featureTableString);
+  }
   byteOffset += featureTableJsonByteLength;
 
   const featureTableBinary = new Uint8Array(arrayBuffer, byteOffset, featureTableBinaryByteLength);

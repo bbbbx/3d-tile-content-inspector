@@ -5,6 +5,11 @@ const hexViewer = document.getElementById('hexViewer');
 const ui = document.getElementById('ui');
 const fileElem = document.getElementById('file');
 
+let decoderModule;
+DracoDecoderModule({}).then((module) => {
+  decoderModule = module;
+});
+
 function inspectFile(file) {
   infoElem.innerText = 'Loading...';
 
@@ -130,7 +135,8 @@ function constructJsonView(object) {
         var startToken = '{', endToken = '}';
         var prevLine = myCodeMirror.getLine(from.line);
         if (prevLine.lastIndexOf('[') > prevLine.lastIndexOf('{')) {
-          startToken = '[', endToken = ']';
+          startToken = '[';
+          endToken = ']';
         }
 
         // Get json content
@@ -246,6 +252,19 @@ function inspectCmpt(arrayBuffer) {
     let tile = tiles[i];
     if (tile.magic === 'pnts') {
       validatePntsByteLength(tile);
+    } else if (tile.magic === 'b3dm') {
+      const glb = parseGlb(tile.glb);
+      tile.glb = glb;
+    } else if (tile.magic === 'i3dm') {
+      const urlOrGlb = tile.urlOrGlb;
+      if (urlOrGlb instanceof ArrayBuffer) {
+        const glb = parseGlb(urlOrGlb);
+        tile.urlOrGlb = glb;
+      } else if (typeof urlOrGlb === 'string') {
+        tile.urlOrGlb = urlOrGlb;
+      } else {
+        console.warn('unknown glTF format.')
+      }
     }
 
     tile = extractFeatureTableAndBatchTable(tile);
