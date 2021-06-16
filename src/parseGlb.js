@@ -123,7 +123,9 @@ function parseGlb(arrayBuffer) {
     const accessors = glb.JSON.accessors;
     const bufferViews = glb.JSON.bufferViews;
     const buffers = glb.JSON.buffers;
-    const meshes = glb.JSON.meshes;
+    
+    // meshes may be "null"
+    const meshes = glb.JSON.meshes || [];
     const meshesLength = meshes.length;
 
     const maximumElementCount = 10;
