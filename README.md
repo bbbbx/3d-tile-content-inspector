@@ -4,9 +4,11 @@
 
 [![screenshot.png](docs/screenshot.png)](https://3d-tile-content-inspector.vercel.app/)
 
-## Todo
+## Supported formats
 
 - [x] .pnts
 - [x] .b3dm
 - [x] .i3dm
 - [x] .cmpt
+- [x] .glb
+- [x] draco

@@ -1,4 +1,5 @@
 const infoElem = document.getElementById('info');
+const warningElem = document.getElementById('warning');
 const errorElem = document.getElementById('error');
 const jsonViewer = document.getElementById('jsonViewer');
 const hexViewer = document.getElementById('hexViewer');
@@ -82,30 +83,43 @@ function inspectFromUrl(url) {
     })
 }
 
+const hexDumpWorker = new Worker('./hexDump.js');
+
 function inspect(arrayBuffer, filename) {
 
   errorElem.innerText = '';
 
   // ----- For hex viewer -----
   infoElem.innerText = 'Parsing...';
-  const hex = hexDump(arrayBuffer);
-  constructHexViewer(hex, hexViewer);
+  hexDumpWorker.postMessage(arrayBuffer, [ arrayBuffer ]);
+  hexDumpWorker.addEventListener('message', function resolveHexString(event) {
+    // FIXME: cost too expensive
+    // use TextEncoder to encode string to arraybuffer,
+    // then use TextDecoder to decode arraybuffer.
+    // Decoding costs also expensive.
+    const { hex, arrayBuffer } = event.data;
+    constructHexViewer(hex, hexViewer);
 
-  const textDecoder = new TextDecoder('utf8');
-  const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
+    const textDecoder = new TextDecoder('utf8');
+    const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
 
-  if (magic === 'pnts') {
-    inspectPnts(arrayBuffer);
-  } else if (magic === 'cmpt') {
-    inspectCmpt(arrayBuffer);
-  } else if (magic === 'b3dm') {
-    inspectB3dm(arrayBuffer, filename + '.glb');
-  } else if (magic === 'i3dm') {
-    inspectI3dm(arrayBuffer, filename + '.glb');
-  } else {
-    infoElem.innerText = '';
-    errorElem.innerText = 'Unsupported format: ' + magic;
-  }
+    if (magic === 'pnts') {
+      inspectPnts(arrayBuffer);
+    } else if (magic === 'cmpt') {
+      inspectCmpt(arrayBuffer);
+    } else if (magic === 'b3dm') {
+      inspectB3dm(arrayBuffer, filename + '.glb');
+    } else if (magic === 'i3dm') {
+      inspectI3dm(arrayBuffer, filename + '.glb');
+    } else if (magic === 'glTF') {
+      inspectGlb(arrayBuffer);
+    } else if (magic === 'DRAC' && textDecoder.decode(new Uint8Array(arrayBuffer, 4, 1)) === 'O') {
+      inspectDraco(arrayBuffer);
+    } else {
+      infoElem.innerText = '';
+      errorElem.innerText = 'Unsupported format: ' + magic;
+    }
+  });
 
 }
 
@@ -183,6 +197,37 @@ function createAnchorForDownloadGlb(arrayBuffer, filename) {
 
   // TODO: call URL.revokeObjectURL(objectURL);
   return anchor;
+}
+
+function inspectGlb(arrayBuffer) {
+  const glb = parseGlb(arrayBuffer);
+
+  constructJsonView(glb);
+
+  infoElem.innerText = 'Done';
+  errorElem.innerText = '';
+}
+
+function inspectDraco(arrayBuffer) {
+
+  const bufferView = {
+    byteLength: arrayBuffer.byteLength,
+  };
+  const decodedDraco = decodePrimitive(arrayBuffer, bufferView, undefined, true);
+  const attributeData = decodedDraco.attributeData;
+
+  for (const attributeId in attributeData) {
+    if (Object.hasOwnProperty.call(attributeData, attributeId)) {
+      const attribute = attributeData[attributeId];
+      attribute.array = attribute.array.slice(0, 100);
+    }
+  }
+  decodedDraco.indexArray.typedArray = decodedDraco.indexArray.typedArray.slice(0, 100);
+
+  constructJsonView(decodedDraco);
+
+  infoElem.innerText = 'Done';
+  errorElem.innerText = '';
 }
 
 function inspectB3dm(arrayBuffer, filename) {
@@ -289,6 +334,6 @@ function validatePntsByteLength(tile) {
   } = tile;
   const expectedByteLength = headerByteLength + featureTableJsonByteLength + featureTableBinaryByteLength + batchTableJsonByteLength + batchTableBinaryByteLength;
   if (byteLength !== expectedByteLength) {
-    alert(magic + ' content bytes length is NOT equals byteLength field.');
+    warningElem.innerText = magic + ' content bytes length is NOT equals byteLength field.';
   }
 }

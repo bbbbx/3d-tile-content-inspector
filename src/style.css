@@ -41,6 +41,9 @@ html, body { margin: 0 }
 #info {
   color: #669633;
 }
+#warning {
+  color: #ffcc00;
+}
 #error {
   color: #C22C25;
 }

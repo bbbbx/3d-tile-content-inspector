@@ -26,16 +26,18 @@ function constructHexViewer(hex, hexViewer) {
     });
     const div = document.createElement('div');
 
-    div.innerText += toHexString(i).padStart(8, '0');
-    div.innerText += ': ';
-    div.innerText += h.join(' ');
+    let text = '';
+    text += toHexString(i).padStart(8, '0');
+    text += ': ';
+    text += h.join(' ');
 
     // last line
     if (i + 16 >= length) {
       div.innerHTML += '&nbsp;'.repeat((16 - h.length) * 3);
     }
 
-    div.innerText += ' ' + c.join('');
+    text += ' ' + c.join('');
+    div.innerText = text
     fragment.appendChild(div);
   }
   hexViewer.appendChild(fragment);

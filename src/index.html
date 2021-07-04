@@ -21,7 +21,7 @@
   <script src="./IndexDatatype.js"></script>
 
   <script src="./constructHexViewer.js"></script>
-  <script src="./hexDump.js"></script>
+  <!-- <script src="./hexDump.js"></script> -->
   <script src="./toHexString.js"></script>
   <script src="./parsePnts.js"></script>
   <script src="./parseB3dm.js"></script>
@@ -34,17 +34,18 @@
 </head>
 <body>
   <div id="ui">
-    You can load tile content(.pnts, .b3dm, .i3dm, .cmpt) from
+    You can load tile content(.pnts, .b3dm, .i3dm, .cmpt) or .glb or draco file from
     <label for="url">URL: </label>
     <input type="text" id="url">
     <!-- value="/sampleData/0.pnts" -->
     or
-    <input type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt">
+    <input type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt, .glb, .drc">
     from local file system, then
     <button id="inspect">Inspect</button> it.
 
     <p>NOTE: display up to 100 records and 512 kibibyte.</p>
     <div id="info"></div>
+    <div id="warning"></div>
     <div id="error"></div>
   </div>
   <div id="jsonViewer"></div>

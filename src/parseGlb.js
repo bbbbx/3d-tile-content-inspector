@@ -286,15 +286,14 @@ function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeN
       componentsPerAttribute: numComponents,
       componentDatatype: componentDatatype,
       byteOffset: dracoAttribute.byte_offset(),
-      byteStride:
-        ComponentDatatype.getSizeInBytes(componentDatatype) * numComponents,
+      byteStride: ComponentDatatype.getSizeInBytes(componentDatatype) * numComponents,
       normalized: dracoAttribute.normalized(),
       quantization: quantization,
     },
   };
 }
 
-function decodePrimitive(arrayBuffer, bufferView, compressedAttributes) {
+function decodePrimitive(arrayBuffer, bufferView, compressedAttributes, useDefaultAttributeId) {
   const decoder = new decoderModule.Decoder();
 
   // Skip all parameter types except generic
@@ -334,12 +333,28 @@ function decodePrimitive(arrayBuffer, bufferView, compressedAttributes) {
 
   const attributeData = {};
 
-  for (const attributeName in compressedAttributes) {
-    if (Object.hasOwnProperty.call(compressedAttributes, attributeName)) {
-      const compressedAttribute = compressedAttributes[attributeName];
-      const dracoAttribute = decoder.GetAttributeByUniqueId(dracoGeometry, compressedAttribute);
-      attributeData[attributeName]= decodeAttribute(dracoGeometry, decoder, dracoAttribute, attributeName);
+  if (useDefaultAttributeId) {
+    const defaultAttributeNames = ['POSITION', 'NORMAL', 'COLOR', 'TEX_COORD', 'GENERIC'];
+
+    for (const defaultAttributeName of defaultAttributeNames) {
+      const attributeID = decoder.GetAttributeId(dracoGeometry, decoderModule[defaultAttributeName]);
+      if (attributeID === -1) {
+        continue;
+      }
+      const dracoAttribute = decoder.GetAttribute(dracoGeometry, attributeID);
+      attributeData[defaultAttributeName] = decodeAttribute(dracoGeometry, decoder, dracoAttribute, defaultAttributeName);
     }
+
+  } else {
+
+    for (const attributeName in compressedAttributes) {
+      if (Object.hasOwnProperty.call(compressedAttributes, attributeName)) {
+        const compressedAttribute = compressedAttributes[attributeName];
+        const dracoAttribute = decoder.GetAttributeByUniqueId(dracoGeometry, compressedAttribute);
+        attributeData[attributeName]= decodeAttribute(dracoGeometry, decoder, dracoAttribute, attributeName);
+      }
+    }
+
   }
 
   const result = {
