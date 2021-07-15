@@ -202,19 +202,67 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
   // Performance: up to 100 records
   featureLength = Math.min(featureLength, 100);
 
-  for (const key of Object.keys(featureTableJson)) {
-    if (featureTableJson.hasOwnProperty(key)) {
-      const semantics = featureTableJson[key];
-      if (GLOBAL_SEMANTICS[key]) {
-        featureTableJson[key] = extractSemanticsValue(semantics, key, featureTableBinary, 1);
-        continue;
-      }
+  const extensions = featureTableJson.extensions;
+  if (extensions) {
+    const dracoPointCompressionExtension = extensions['3DTILES_draco_point_compression'];
+    if (dracoPointCompressionExtension) {
+      const properties = dracoPointCompressionExtension.properties
+      const byteOffset = defaultValue(dracoPointCompressionExtension.byteOffset, 0);
+      const byteLength = defaultValue(dracoPointCompressionExtension.byteLength, featureTableBinary.byteLength);
 
-      const typeOfSemantics = Object.prototype.toString.call(semantics);
-      // exclude number and array
-      if (typeOfSemantics === '[object Object]') {
-        const semanticsValue = extractSemanticsValue(semantics, key, featureTableBinary, featureLength);
-        extractedFeatureTable[key] = semanticsValue;
+      const dracoDataArrayBufferView = featureTableBinary.slice(byteOffset, byteOffset + byteLength);
+
+      const decoded = decodePrimitive(dracoDataArrayBufferView.buffer, dracoDataArrayBufferView, properties);
+      const attributeData = decoded.attributeData;
+
+      for (const attributeName of Object.keys(attributeData)) {
+        if (attributeData.hasOwnProperty(attributeName)) {
+          extractedFeatureTable[attributeName] = [];
+
+          const attributeArray = attributeData[attributeName].array;
+          const semantics = featureTableJson[attributeName];
+          let type = semantics.type;
+          if (!defined(type)) {
+            type = FEATURE_SEMANTICS[attributeName].type;
+          }
+          if (!defined(type)) {
+            type = GLOBAL_SEMANTICS[attributeName].type;
+          }
+          if (!defined(type)) {
+            console.warn('Can not find semantics of ' + attributeName + '.');
+            continue;
+          }
+
+          const numberOfComponents = getNumberOfComponents[type];
+          for (let i = 0; i < featureLength; i++) {
+            const feature = [];
+            for (let j = 0; j < numberOfComponents; j++) {
+              const element = attributeArray[i * numberOfComponents + j];
+              feature.push(element);
+            }
+            extractedFeatureTable[attributeName].push(feature);
+          }
+        }
+      }
+    } else {
+      console.warn('Only supported 3DTILES_draco_point_compression extension, current extensions is ' + Object.keys(extensions).join(', ') + '.');
+    }
+  } else {
+
+    for (const key of Object.keys(featureTableJson)) {
+      if (featureTableJson.hasOwnProperty(key)) {
+        const semantics = featureTableJson[key];
+        if (GLOBAL_SEMANTICS[key]) {
+          featureTableJson[key] = extractSemanticsValue(semantics, key, featureTableBinary, 1);
+          continue;
+        }
+  
+        const typeOfSemantics = Object.prototype.toString.call(semantics);
+        // exclude number and array
+        if (typeOfSemantics === '[object Object]') {
+          const semanticsValue = extractSemanticsValue(semantics, key, featureTableBinary, featureLength);
+          extractedFeatureTable[key] = semanticsValue;
+        }
       }
     }
   }

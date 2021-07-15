@@ -172,7 +172,15 @@ function constructJsonView(object) {
 
 function extractFeatureTableAndBatchTable(parsedTile) {
   const { tableObject: featureTable, featureLength } = parseFeatureTableOrBatchTable(parsedTile.featureTableJson, parsedTile.featureTableBinary);
-  const { tableObject: batchTable } = parseFeatureTableOrBatchTable(parsedTile.batchTableJson, parsedTile.batchTableBinary, featureLength);
+
+  let binary = parsedTile.batchTableBinary;
+  if (parsedTile.magic === 'pnts' && parsedTile.batchTableJson) {
+    const extensions = parsedTile.batchTableJson.extensions;
+    if (extensions && extensions['3DTILES_draco_point_compression']) {
+      binary = parsedTile.featureTableBinary;
+    }
+  }
+  const { tableObject: batchTable } = parseFeatureTableOrBatchTable(parsedTile.batchTableJson, binary, featureLength);
 
   parsedTile = {
     ...parsedTile,

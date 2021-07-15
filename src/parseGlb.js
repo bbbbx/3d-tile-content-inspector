@@ -358,9 +358,12 @@ function decodePrimitive(arrayBuffer, bufferView, compressedAttributes, useDefau
   }
 
   const result = {
-    indexArray: decodeIndexArray(dracoGeometry, decoder),
     attributeData: attributeData,
   };
+  // only triangle mesh has indices?
+  if (geometryType === decoderModule.TRIANGULAR_MESH) {
+    result.indexArray = decodeIndexArray(dracoGeometry, decoder);
+  }
 
   decoderModule.destroy(dracoGeometry);
   decoderModule.destroy(decoder);
