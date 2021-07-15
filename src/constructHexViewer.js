@@ -30,14 +30,17 @@ function constructHexViewer(hex, hexViewer) {
     text += toHexString(i).padStart(8, '0');
     text += ': ';
     text += h.join(' ');
+    div.innerHTML = text;
 
     // last line
     if (i + 16 >= length) {
-      div.innerHTML += '&nbsp;'.repeat((16 - h.length) * 3);
+      const numOfBytes = 16 - h.length;
+      const numOfSpace = numOfBytes * 3;
+      div.innerHTML += '&nbsp;'.repeat(numOfSpace);
     }
 
-    text += ' ' + c.join('');
-    div.innerText = text
+    div.innerHTML += ' ' + c.join('');
+
     fragment.appendChild(div);
   }
   hexViewer.appendChild(fragment);
