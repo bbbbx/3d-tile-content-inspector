@@ -6,11 +6,6 @@ const hexViewer = document.getElementById('hexViewer');
 const ui = document.getElementById('ui');
 const fileElem = document.getElementById('file');
 
-let decoderModule;
-DracoDecoderModule({}).then((module) => {
-  decoderModule = module;
-});
-
 function inspectFile(file) {
   infoElem.innerText = 'Loading...';
 
