@@ -16,6 +16,10 @@ map.set(13, 'd');
 map.set(14, 'e');
 map.set(15, 'f');
 
+function validatePrintable(charCode) {
+  return (charCode >= 32 && charCode <= 126);
+}
+
 function toHexString(number) {
   if (typeof number !== 'number') {
     throw new Error('toBinaryString: the input argument MUST be number');
@@ -25,9 +29,7 @@ function toHexString(number) {
     maskString = maskString.padStart(maskString.length + 1, map.get(number % 16));
   }
 
-  if (maskString.length < 2) {
-    maskString = maskString.padStart(maskString.length + 1, '0');
-  }
+  maskString = maskString.padStart(2, '0');
 
   return maskString;
 }
@@ -41,7 +43,10 @@ function hexDump(arrayBuffer) {
 
   for (let i = 0; i < length; i++) {
     let charCode = uint8Array[i];
-    const char = String.fromCharCode(charCode);
+
+    const char = validatePrintable(charCode) ?
+      String.fromCharCode(charCode) :
+      '.';
     chars.push(char);
 
     const hex = toHexString(charCode);

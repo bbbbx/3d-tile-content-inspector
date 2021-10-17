@@ -1,4 +1,6 @@
-html, body { margin: 0 }
+html, body { 
+  margin: 0;
+}
 #hexViewer, #jsonViewer, #ui {
   display: inline-block;
   width: 50vw;
@@ -11,17 +13,28 @@ html, body { margin: 0 }
 }
 
 #hexViewer {
-  top: 0;
-  right: 0;
-  height: 100vh;
+  left: 0;
+  bottom: 0;
+  height: 70vh;
   font-family: monospace;
   padding: 10px;
 }
 
 #jsonViewer {
-  left: 0;
-  bottom: 0px;
-  height: 80vh;
+  top: 0;
+  right: 0;
+  height: 100vh;
+}
+
+#ui {
+  height: 30vh;
+  padding: 10px;
+  background-color: rgb(225, 234, 239);
+}
+
+#ui .ui-container {
+  padding: 5px;
+  border: 3px dashed rgb(143, 173, 176);
 }
 
 @media (max-width: 1300px) {
@@ -31,11 +44,11 @@ html, body { margin: 0 }
   #hexViewer {
     display: none;
   }
-}
-
-#ui {
-  height: 20vh;
-  padding: 10px;
+  #jsonViewer {
+    left: 0;
+    top: 30vh;
+    height: 70vh;
+  }
 }
 
 #info {

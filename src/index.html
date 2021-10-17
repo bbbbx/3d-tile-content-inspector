@@ -21,13 +21,13 @@
   <script src="./IndexDatatype.js"></script>
 
   <script src="./constructHexViewer.js"></script>
-  <!-- <script src="./hexDump.js"></script> -->
   <script src="./toHexString.js"></script>
   <script src="./parsePnts.js"></script>
   <script src="./parseB3dm.js"></script>
   <script src="./parseI3dm.js"></script>
   <script src="./parseCmpt.js"></script>
   <script src="./parseFeatureTableOrBatchTable.js"></script>
+  <script src="./parseDraco.js"></script>
   <script src="./parseGlb.js"></script>
 
   <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -44,19 +44,18 @@
 </head>
 <body>
   <div id="ui">
-    You can load tile content(.pnts, .b3dm, .i3dm, .cmpt) or .glb or draco file from
-    <label for="url">URL: </label>
-    <input type="text" id="url">
-    <!-- value="/sampleData/0.pnts" -->
-    or
-    <input type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt, .glb, .drc">
-    from local file system, then
-    <button id="inspect">Inspect</button> it.
-
-    <p>NOTE: display up to 100 records and 512 kibibyte.</p>
-    <div id="info"></div>
-    <div id="warning"></div>
-    <div id="error"></div>
+    <div class="ui-container">
+      Load tile content(<code>.pnts</code>, <code>.b3dm</code>, <code>.i3dm</code>, <code>.cmpt</code>), <code>.glb</code> or <code>draco</code> file from:
+      <ol>
+        <li><label for="url">URL(https only): </label><input type="url" id="url" /> then <button id="inspect">inspect</button> it</li>
+        <li>local file system, <label for="file"><strong>choose a file</strong></label> <input hidden="true" type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt, .glb, .drc" />,</li>
+        <li>drag it on window anywhere.</li>
+      </ol>
+    </div>
+      <p>NOTE: For performance, feature table can display up to 100 records, and hexadecimal viewer can display up to 512 kibibyte. See console for extracted attributes.</p>
+      <div id="info"></div>
+      <div id="warning"></div>
+      <div id="error"></div>
   </div>
   <div id="jsonViewer"></div>
   <div id="hexViewer"></div>

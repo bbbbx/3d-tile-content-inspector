@@ -20,20 +20,32 @@ function inspectFile(file) {
   fileReader.readAsArrayBuffer(file);
 }
 
-ui.addEventListener('drop', ev => {
-  ev.preventDefault();
+window.addEventListener('dragover', event => {
+  event.stopPropagation();
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'copy';
 
+  infoElem.innerText = 'Release to parse';
+}, false);
+window.addEventListener('dragleave', () => {
+  infoElem.innerText = '';
+}, false);
+window.addEventListener('drop', event => {
+  event.stopPropagation();
+  event.preventDefault();
+
+  const dataTransfer = event.dataTransfer;
   let file;
-  if (ev.dataTransfer.items && ev.dataTransfer.items.length > 0) {
-    file = ev.dataTransfer.items[0].getAsFile();
-  } else if (ev.dataTransfer.files && ev.dataTransfer.files.length > 0) {
-    file = ev.dataTransfer.files[0];
+  if (dataTransfer.items && dataTransfer.items.length > 0) {
+    file = dataTransfer.items[0].getAsFile();
+  } else if (dataTransfer.files && dataTransfer.files.length > 0) {
+    file = dataTransfer.files[0];
   }
 
   if (file) {
     inspectFile(file);
   }
-});
+}, false);
 
 fileElem.addEventListener('click', function() {
   fileElem.value = '';
@@ -48,8 +60,14 @@ fileElem.addEventListener('change', function(event) {
 const urlElem = document.getElementById('url');
 const inspectElem = document.getElementById('inspect');
 inspectElem.addEventListener('click', function() {
-  const url = urlElem.value;
-  inspectFromUrl(url);
+  const url = urlElem.value.trim();
+  if (url) {
+    try {
+      inspectFromUrl(url);
+    } catch (error) {
+      errorElem.innerText = error;
+    }
+  }
 });
 
 function fetchArrayBuffer(url) {
