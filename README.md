@@ -12,3 +12,26 @@
 - [x] .cmpt
 - [x] .glb
 - [x] draco
+
+## Dependencies
+
+- Draco
+- codemirror-5.59.4
+
+See `src/thirdParty`.
+
+## Development
+
+Update submodule:
+
+```bash
+git submodule update --init --recursive
+```
+
+Lift development server:
+
+```
+npx http-server
+```
+
+Open `http://127.0.0.1:8080/src`.
