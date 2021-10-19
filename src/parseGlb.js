@@ -140,7 +140,7 @@ function parseGlb(arrayBuffer) {
 
         const dracoExtension = extensions && extensions.KHR_draco_mesh_compression;
 
-        const extractedPrimitive = {};
+        let extractedPrimitive = {};
 
         if (dracoExtension) {
           const compressedAttributes = dracoExtension.attributes;
