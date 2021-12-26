@@ -9,7 +9,7 @@ function constructHexViewer(hex, hexViewer) {
 
   const offsetDiv = document.createElement('div');
   offsetDiv.style.fontWeight = 'bold';
-  offsetDiv.innerText += '&nbsp;&nbspOffset:&nbsp;00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F';
+  offsetDiv.innerHTML += '&nbsp;&nbspOffset:&nbsp;00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F';
   fragment.appendChild(offsetDiv);
 
   for (let i = 0; i < length; i += 16) {
