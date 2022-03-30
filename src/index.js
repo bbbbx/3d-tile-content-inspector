@@ -27,12 +27,12 @@ window.addEventListener('dragover', event => {
 
   infoElem.innerText = 'Release to parse';
 }, false);
-window.addEventListener('dragleave', () => {
-  infoElem.innerText = '';
-}, false);
+
 window.addEventListener('drop', event => {
   event.stopPropagation();
   event.preventDefault();
+
+  infoElem.innerText = '';
 
   const dataTransfer = event.dataTransfer;
   let file;
@@ -151,7 +151,7 @@ function constructJsonView(object) {
     readOnly: true,
 
     // collapse code
-    lineWrapping:true,
+    lineWrapping: false,
     foldGutter: true,
     gutters:["CodeMirror-linenumbers", "CodeMirror-foldgutter"],
     foldOptions: {
