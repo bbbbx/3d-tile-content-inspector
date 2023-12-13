@@ -145,9 +145,10 @@ function parseGlb(arrayBuffer) {
         if (dracoExtension) {
           const compressedAttributes = dracoExtension.attributes;
           const bufferView = glb.JSON.bufferViews[dracoExtension.bufferView];
+          bufferView.byteOffset ??= 0;
           // const buffer = glb.JSON.buffers[bufferView.buffer];
           const decodedResult = decodePrimitive(
-            binaryArrayBuffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength),
+            new Uint8Array(binaryArrayBuffer, bufferView.byteOffset, bufferView.byteLength),
             bufferView,
             compressedAttributes
           );

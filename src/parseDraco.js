@@ -62,7 +62,7 @@ function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeN
   };
 }
 
-function decodePrimitive(arrayBuffer, bufferView, compressedAttributes, useDefaultAttributeId) {
+function decodePrimitive(arrayBufferView, bufferView, compressedAttributes, useDefaultAttributeId) {
   const decoder = new decoderModule.Decoder();
 
   // Skip all parameter types except generic
@@ -78,8 +78,7 @@ function decodePrimitive(arrayBuffer, bufferView, compressedAttributes, useDefau
 
   // Create a buffer to hold the encoded data.
   const buffer = new decoderModule.DecoderBuffer();
-  const byteArray = new Uint8Array(arrayBuffer);
-  buffer.Init(byteArray, bufferView.byteLength);
+  buffer.Init(arrayBufferView, bufferView.byteLength);
 
   const geometryType = decoder.GetEncodedGeometryType(buffer);
 
