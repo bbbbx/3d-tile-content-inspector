@@ -122,12 +122,14 @@ function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaul
   // Decode the encoded geometry.
   let dracoGeometry;
   let status;
-  if (geometryType == decoderModule.TRIANGULAR_MESH) {
+  if (geometryType === decoderModule.TRIANGULAR_MESH) {
     dracoGeometry = new decoderModule.Mesh();
     status = decoder.DecodeBufferToMesh(buffer, dracoGeometry);
-  } else {
+  } else if (geometryType === decoderModule.POINT_CLOUD) {
     dracoGeometry = new decoderModule.PointCloud();
     status = decoder.DecodeBufferToPointCloud(buffer, dracoGeometry);
+  } else {
+    throw new Error(`unknown Draco geometry type: ${geometryType}.`);
   }
 
   if (!status.ok() || dracoGeometry.ptr === 0) {
@@ -165,6 +167,7 @@ function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaul
   }
 
   const result = {
+    geometryType: geometryType === decoderModule.TRIANGULAR_MESH ? 'TRIANGULAR_MESH' : 'POINT_CLOUD',
     attributeData: attributeData,
     indexArray: undefined,
   };
@@ -175,6 +178,27 @@ function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaul
 
   decoderModule.destroy(dracoGeometry);
   decoderModule.destroy(decoder);
+
+  const loggedResult = {
+    geometryType: result.geometryType,
+    attributeData: {},
+  };
+  for (const attributeName in result.attributeData) {
+    if (Object.prototype.hasOwnProperty.call(result.attributeData, attributeName)) {
+      const attribute = result.attributeData[attributeName];
+      loggedResult.attributeData[attributeName] = {
+        array: attribute.array,
+        data: attribute.data,
+      };
+    }
+  }
+  if (result.indexArray) {
+    loggedResult.indexArray = {
+      numberOfIndices: result.indexArray.numberOfIndices,
+      typedArray: result.indexArray.typedArray,
+    };
+  }
+  console.log(`draco primitive:`, loggedResult);
 
   return result;
 }

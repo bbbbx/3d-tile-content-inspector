@@ -100,7 +100,7 @@ function inspectDraco(arrayBuffer) {
   const bufferView = {
     byteLength: arrayBuffer.byteLength,
   };
-  const decodedDraco = decodePrimitive(arrayBuffer, bufferView, undefined, true);
+  const decodedDraco = decodePrimitive(new Uint8Array(arrayBuffer), bufferView, undefined, true);
   const attributeData = decodedDraco.attributeData;
 
   for (const attributeId in attributeData) {
@@ -109,7 +109,9 @@ function inspectDraco(arrayBuffer) {
       attribute.array = attribute.array.slice(0, 100);
     }
   }
-  decodedDraco.indexArray.typedArray = decodedDraco.indexArray.typedArray.slice(0, 100);
+  if (decodedDraco.indexArray) {
+    decodedDraco.indexArray.typedArray = decodedDraco.indexArray.typedArray?.slice(0, 100);
+  }
 
   return decodedDraco;
 }
