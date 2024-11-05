@@ -1,3 +1,5 @@
+import { toHexString } from "./toHexString.js";
+
 const MAX_BYTE_LENGTH = 524288; // 1024 * 512, 512 Kibibyte
 
 function constructHexViewer(hex, hexViewer) {
@@ -38,3 +40,7 @@ function constructHexViewer(hex, hexViewer) {
 
   return hexViewer;
 }
+
+export {
+  constructHexViewer,
+};

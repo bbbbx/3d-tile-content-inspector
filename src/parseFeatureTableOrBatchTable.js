@@ -1,3 +1,6 @@
+import defined from "./defined.js";
+import { decodePrimitive } from "./parseDraco.js";
+
 const FEATURE_SEMANTICS = {
   // common
   POSITION: {
@@ -118,13 +121,6 @@ const getComponentType = {
   DOUBLE: Float64Array,
 };
 
-function defined(a) {
-  if (a !== undefined && a !== null) {
-    return true;
-  }
-  return false;
-}
-
 function extractSemanticsValue(semantics, key, uint8ArrayView, length) {
   const typeOfValue = Object.prototype.toString.call(semantics);
 
@@ -207,12 +203,12 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
     const dracoPointCompressionExtension = extensions['3DTILES_draco_point_compression'];
     if (dracoPointCompressionExtension) {
       const properties = dracoPointCompressionExtension.properties
-      const byteOffset = defaultValue(dracoPointCompressionExtension.byteOffset, 0);
-      const byteLength = defaultValue(dracoPointCompressionExtension.byteLength, featureTableBinary.byteLength);
+      const byteOffset = dracoPointCompressionExtension.byteOffset ?? 0;
+      const byteLength = dracoPointCompressionExtension.byteLength ?? featureTableBinary.byteLength;
 
-      const dracoDataArrayBufferView = featureTableBinary.slice(byteOffset, byteOffset + byteLength);
+      const dracoDataArrayBufferView = featureTableBinary.subarray(byteOffset, byteOffset + byteLength);
 
-      const decoded = decodePrimitive(dracoDataArrayBufferView.buffer, dracoDataArrayBufferView, properties);
+      const decoded = decodePrimitive(dracoDataArrayBufferView, { byteLength: byteLength }, properties);
       const attributeData = decoded.attributeData;
 
       for (const attributeName of Object.keys(attributeData)) {
@@ -272,3 +268,7 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
     featureLength
   };
 }
+
+export {
+  parseFeatureTableOrBatchTable,
+};

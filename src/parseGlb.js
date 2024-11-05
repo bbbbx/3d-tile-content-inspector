@@ -1,37 +1,23 @@
-const WEBGL_CONSTANT = {
-  // componentType
-  BYTE: 5120,
-  UNSIGNED_BYTE: 5121,
-  SHORT: 5122,
-  UNSIGNED_SHORT: 5123,
-  INT: 5124,
-  UNSIGNED_INT: 5125,
-  FLOAT: 5126,
+import { decodePrimitive } from "./parseDraco.js";
+import WebGLConstants from "./WebGLConstants.js";
 
-  // target
-  ARRAY_BUFFER: 34962,
-  ELEMENT_ARRAY_BUFFER: 34963,
-};
-
-const COMPONENT_TYPE_SIZE_IN_BYTES = new window.Map();
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.BYTE, 1);
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.UNSIGNED_BYTE, 1);
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.SHORT, 2);
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.UNSIGNED_SHORT, 2);
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.INT, 4);
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.UNSIGNED_INT, 4);
-COMPONENT_TYPE_SIZE_IN_BYTES.set(WEBGL_CONSTANT.FLOAT, 4);
+const COMPONENT_TYPE_SIZE_IN_BYTES = new Map();
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.BYTE, 1);
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.UNSIGNED_BYTE, 1);
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.SHORT, 2);
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.UNSIGNED_SHORT, 2);
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.INT, 4);
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.UNSIGNED_INT, 4);
+COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.FLOAT, 4);
 
 const COMPONENT_TYPE_TYPED_ARRAY = new window.Map();
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.BYTE, Int8Array);
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.UNSIGNED_BYTE, Uint8Array);
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.SHORT, Int16Array);
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.UNSIGNED_SHORT, Uint16Array);
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.INT, Int32Array);
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.UNSIGNED_INT, Uint32Array);
-COMPONENT_TYPE_TYPED_ARRAY.set(WEBGL_CONSTANT.FLOAT, Float32Array);
-
-
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.BYTE, Int8Array);
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.UNSIGNED_BYTE, Uint8Array);
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.SHORT, Int16Array);
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.UNSIGNED_SHORT, Uint16Array);
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.INT, Int32Array);
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.UNSIGNED_INT, Uint32Array);
+COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.FLOAT, Float32Array);
 
 const NUMBER_OF_COMPONENTS = {
   'SCALAR': 1,
@@ -190,11 +176,11 @@ function extractAttribute(accessorIndex, accessors, bufferViews, buffers, arrayB
   const elementCount = accessor.count;
 
   let offset = 0;
-  offset += defaultValue(accessor.byteOffset, 0);
+  offset += accessor.byteOffset ?? 0;
 
-  const bufferViewIndex = defaultValue(accessor.bufferView, 0);
+  const bufferViewIndex = accessor.bufferView ?? 0;
   const bufferView = bufferViews[bufferViewIndex];
-  offset += defaultValue(bufferView.byteOffset, 0);
+  offset += bufferView.byteOffset ?? 0;
 
   const numberOfComponents = NUMBER_OF_COMPONENTS[elementType];
 
@@ -217,7 +203,7 @@ function extractAttribute(accessorIndex, accessors, bufferViews, buffers, arrayB
   const TypedArray = COMPONENT_TYPE_TYPED_ARRAY.get(componentType);
 
   // only extract 10 elements
-  maximumElementCount = defaultValue(maximumElementCount, 10);
+  maximumElementCount = maximumElementCount ?? 10;
   const displayElementCount = Math.min(elementCount, maximumElementCount);
 
   for (let ii = 0; ii < displayElementCount; ii++) {
@@ -233,3 +219,7 @@ function extractAttribute(accessorIndex, accessors, bufferViews, buffers, arrayB
     max: accessor.max,
   };
 }
+
+export {
+  parseGlb,
+};

@@ -20,7 +20,7 @@ function toHexString(number) {
   if (typeof number !== 'number') {
     throw new Error('toBinaryString: the input argument MUST be number');
   }
-  var maskString = map.get(number % 16);
+  let maskString = map.get(number % 16);
   while ((number = number >> 4) !== 0) {
     maskString = maskString.padStart(maskString.length + 1, map.get(number % 16));
   }
@@ -32,4 +32,6 @@ function toHexString(number) {
   return maskString;
 }
 
-// module.exports = toHexString
+export {
+  toHexString,
+};

@@ -86,3 +86,7 @@ function parsePnts(arraybuffer) {
     batchTableBinary
   };
 }
+
+export {
+  parsePnts,
+};
