@@ -1,3 +1,6 @@
+import { parseB3dm } from "./parseB3dm.js";
+import { parseI3dm } from "./parseI3dm.js";
+import { parsePnts } from "./parsePnts.js";
 
 function parseCmpt(arrayBuffer) {
   const uint8Array = new Uint8Array(arrayBuffer);
@@ -70,7 +73,7 @@ function parseCmpt(arrayBuffer) {
     }
 
     offset += tileByteLength - Uint32Array.BYTES_PER_ELEMENT * 3;
-    
+
   }
 
   return {
@@ -81,3 +84,7 @@ function parseCmpt(arrayBuffer) {
     tiles
   }
 }
+
+export {
+  parseCmpt,
+};

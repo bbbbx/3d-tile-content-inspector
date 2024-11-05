@@ -86,3 +86,8 @@ function parseB3dm(arrayBuffer) {
     glb,
   };
 }
+
+export {
+  parseB3dm,
+};
+

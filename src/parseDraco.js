@@ -1,12 +1,43 @@
-function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeName) {
-  var numPoints = dracoGeometry.num_points();
-  var numComponents = dracoAttribute.num_components();
+import defined from "./defined.js";
+import ComponentDatatype from "./ComponentDatatype.js";
+import { IndexDatatype } from "./IndexDatatype.js";
 
-  var quantization;
-  var transform = new decoderModule.AttributeQuantizationTransform();
+function createDecoderModule() {
+  return DracoDecoderModule({});
+}
+
+function loadJavaScriptFile(path) {
+  return new Promise((resolve) => {
+    const head = document.getElementsByTagName('head')[0];
+    const element = document.createElement('script');
+    element.type = 'text/javascript';
+    element.src = path;
+    element.onload = () => resolve();
+
+    head.appendChild(element);
+  });
+}
+
+const decoderPath = './thirdParty/draco/javascript/';
+function loadDracoDecoder() {
+  if (typeof WebAssembly !== 'object') {
+    return loadJavaScriptFile(decoderPath + 'draco_decoder.js').then(createDecoderModule);
+  } else {
+    return loadJavaScriptFile(decoderPath + 'draco_wasm_wrapper.js').then(createDecoderModule);
+  }
+}
+
+const decoderModule = await loadDracoDecoder();
+
+function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeName) {
+  let numPoints = dracoGeometry.num_points();
+  let numComponents = dracoAttribute.num_components();
+
+  let quantization;
+  let transform = new decoderModule.AttributeQuantizationTransform();
   if (transform.InitFromAttribute(dracoAttribute)) {
-    var minValues = new Array(numComponents);
-    for (var i = 0; i < numComponents; ++i) {
+    let minValues = new Array(numComponents);
+    for (let i = 0; i < numComponents; ++i) {
       minValues[i] = transform.min_value(i);
     }
     quantization = {
@@ -27,8 +58,8 @@ function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeN
   }
   decoderModule.destroy(transform);
 
-  var vertexArrayLength = numPoints * numComponents;
-  var vertexArray;
+  const vertexArrayLength = numPoints * numComponents;
+  let vertexArray;
   if (defined(quantization)) {
     vertexArray = decodeQuantizedDracoTypedArray(
       dracoGeometry,
@@ -47,7 +78,7 @@ function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeN
     );
   }
 
-  var componentDatatype = ComponentDatatype.fromTypedArray(vertexArray);
+  const componentDatatype = ComponentDatatype.fromTypedArray(vertexArray);
 
   return {
     array: vertexArray,
@@ -62,23 +93,29 @@ function decodeAttribute(dracoGeometry, dracoDecoder, dracoAttribute, attributeN
   };
 }
 
-function decodePrimitive(arrayBufferView, bufferView, compressedAttributes, useDefaultAttributeId) {
+/**
+ * 
+ * @param {Uint8Array} typedArray 
+ * @param {{ byteLength: number }} bufferView 
+ * @param {{ [name: string]: number }} compressedAttributes 
+ * @param {boolean} [useDefaultAttributeId=false] 
+ * @returns 
+ */
+function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaultAttributeId = false) {
   const decoder = new decoderModule.Decoder();
 
   // Skip all parameter types except generic
-  var attributesToSkip = ["POSITION", "NORMAL", "COLOR", "TEX_COORD"];
-  const parameters = {
-    dequantizeInShader: false
-  };
-  if (parameters.dequantizeInShader) {
-    for (var i = 0; i < attributesToSkip.length; ++i) {
-      decoder.SkipAttributeTransform(decoderModule[attributesToSkip[i]]);
-    }
-  }
+  // let attributesToSkip = ["POSITION", "NORMAL", "COLOR", "TEX_COORD"];
+  // const dequantizeInShader = false;
+  // if (dequantizeInShader) {
+  //   for (let i = 0; i < attributesToSkip.length; ++i) {
+  //     decoder.SkipAttributeTransform(decoderModule[attributesToSkip[i]]);
+  //   }
+  // }
 
   // Create a buffer to hold the encoded data.
   const buffer = new decoderModule.DecoderBuffer();
-  buffer.Init(arrayBufferView, bufferView.byteLength);
+  buffer.Init(typedArray, bufferView.byteLength);
 
   const geometryType = decoder.GetEncodedGeometryType(buffer);
 
@@ -115,11 +152,13 @@ function decodePrimitive(arrayBufferView, bufferView, compressedAttributes, useD
 
   } else {
 
-    for (const attributeName in compressedAttributes) {
-      if (Object.hasOwnProperty.call(compressedAttributes, attributeName)) {
-        const compressedAttribute = compressedAttributes[attributeName];
-        const dracoAttribute = decoder.GetAttributeByUniqueId(dracoGeometry, compressedAttribute);
-        attributeData[attributeName]= decodeAttribute(dracoGeometry, decoder, dracoAttribute, attributeName);
+    if (compressedAttributes) {
+      for (const attributeName in compressedAttributes) {
+        if (Object.hasOwnProperty.call(compressedAttributes, attributeName)) {
+          const compressedAttribute = compressedAttributes[attributeName];
+          const dracoAttribute = decoder.GetAttributeByUniqueId(dracoGeometry, compressedAttribute);
+          attributeData[attributeName]= decodeAttribute(dracoGeometry, decoder, dracoAttribute, attributeName);
+        }
       }
     }
 
@@ -127,6 +166,7 @@ function decodePrimitive(arrayBufferView, bufferView, compressedAttributes, useD
 
   const result = {
     attributeData: attributeData,
+    indexArray: undefined,
   };
   // only triangle mesh has indices?
   if (geometryType === decoderModule.TRIANGULAR_MESH) {
@@ -146,8 +186,8 @@ function decodeQuantizedDracoTypedArray(
   quantization,
   vertexArrayLength
 ) {
-  var vertexArray;
-  var attributeData;
+  let vertexArray;
+  let attributeData;
   if (quantization.quantizationBits <= 8) {
     attributeData = new decoderModule.DracoUInt8Array();
     vertexArray = new Uint8Array(vertexArrayLength);
@@ -156,7 +196,7 @@ function decodeQuantizedDracoTypedArray(
       dracoAttribute,
       attributeData
     );
-  } else {
+  } else if (quantization.quantizationBits <= 16) {
     attributeData = new decoderModule.DracoUInt16Array();
     vertexArray = new Uint16Array(vertexArrayLength);
     dracoDecoder.GetAttributeUInt16ForAllPoints(
@@ -164,9 +204,17 @@ function decodeQuantizedDracoTypedArray(
       dracoAttribute,
       attributeData
     );
+  } else {
+    attributeData = new decoderModule.DracoFloat32Array();
+    vertexArray = new Float32Array(vertexArrayLength);
+    dracoDecoder.GetAttributeFloatForAllPoints(
+      dracoGeometry,
+      dracoAttribute,
+      attributeData
+    );
   }
 
-  for (var i = 0; i < vertexArrayLength; ++i) {
+  for (let i = 0; i < vertexArrayLength; ++i) {
     vertexArray[i] = attributeData.GetValue(i);
   }
 
@@ -181,8 +229,8 @@ function decodeDracoTypedArray(
   vertexArrayLength,
   attributeName
 ) {
-  var vertexArray;
-  var attributeData;
+  let vertexArray;
+  let attributeData;
 
   // Some attribute types are casted down to 32 bit since Draco only returns 32 bit values
   switch (dracoAttribute.data_type()) {
@@ -259,7 +307,7 @@ function decodeDracoTypedArray(
       break;
   }
 
-  for (var i = 0; i < vertexArrayLength; ++i) {
+  for (let i = 0; i < vertexArrayLength; ++i) {
     vertexArray[i] = attributeData.GetValue(i);
   }
 
@@ -268,14 +316,14 @@ function decodeDracoTypedArray(
 }
 
 function decodeIndexArray(dracoGeometry, dracoDecoder) {
-  var numPoints = dracoGeometry.num_points();
-  var numFaces = dracoGeometry.num_faces();
-  var faceIndices = new decoderModule.DracoInt32Array();
-  var numIndices = numFaces * 3;
-  var indexArray = IndexDatatype.createTypedArray(numPoints, numIndices);
+  const numPoints = dracoGeometry.num_points();
+  const numFaces = dracoGeometry.num_faces();
+  const faceIndices = new decoderModule.DracoInt32Array();
+  const numIndices = numFaces * 3;
+  const indexArray = IndexDatatype.createTypedArray(numPoints, numIndices);
 
-  var offset = 0;
-  for (var i = 0; i < numFaces; ++i) {
+  let offset = 0;
+  for (let i = 0; i < numFaces; ++i) {
     dracoDecoder.GetFaceFromMesh(dracoGeometry, i, faceIndices);
 
     indexArray[offset + 0] = faceIndices.GetValue(0);
@@ -291,3 +339,7 @@ function decodeIndexArray(dracoGeometry, dracoDecoder) {
     numberOfIndices: numIndices,
   };
 }
+
+export {
+  decodePrimitive,
+};

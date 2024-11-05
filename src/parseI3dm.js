@@ -99,3 +99,7 @@ function parseI3dm(arrayBuffer) {
   };
 
 }
+
+export {
+  parseI3dm,
+};
