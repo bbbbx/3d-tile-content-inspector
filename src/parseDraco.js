@@ -202,7 +202,7 @@ function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaul
     if (Object.prototype.hasOwnProperty.call(result.attributeData, attributeName)) {
       const attribute = result.attributeData[attributeName];
       loggedResult.attributeData[attributeName] = {
-        array: attribute.array,
+        array: attribute.array.slice(0, 100),
         data: attribute.data,
       };
     }
@@ -210,7 +210,7 @@ function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaul
   if (result.indexArray) {
     loggedResult.indexArray = {
       numberOfIndices: result.indexArray.numberOfIndices,
-      typedArray: result.indexArray.typedArray,
+      typedArray: result.indexArray.typedArray.slice(0, 100),
     };
   }
   console.log(`draco primitive:`, loggedResult);

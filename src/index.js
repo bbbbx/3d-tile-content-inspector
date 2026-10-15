@@ -2,6 +2,7 @@ import { inspect } from "./inspect.js";
 
 const infoElem = document.getElementById('info');
 const errorElem = document.getElementById('error');
+const warningElem = document.getElementById('warning');
 const fileElem = document.getElementById('file');
 const jsonViewer = document.getElementById('jsonViewer');
 
@@ -85,6 +86,7 @@ function inspectFromFile(file) {
 
 function inspectFromArrayBuffer(arrayBuffer, filename) {
   errorElem.innerText = '';
+  warningElem.innerText = '';
   setInfo('Parsing...', true);
 
   return inspect(arrayBuffer, filename)

@@ -26,27 +26,31 @@ function inspect(arrayBuffer, filename) {
       const { hex, arrayBuffer } = event.data;
       constructHexViewer(hex, hexViewer);
 
-      const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
+      try {
+        const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
 
-      let result = null;
-      if (magic === 'pnts') {
-        result = inspectPnts(arrayBuffer);
-      } else if (magic === 'cmpt') {
-        result = inspectCmpt(arrayBuffer);
-      } else if (magic === 'b3dm') {
-        result = inspectB3dm(arrayBuffer, filename + '.glb');
-      } else if (magic === 'i3dm') {
-        result = inspectI3dm(arrayBuffer, filename + '.glb');
-      } else if (magic === 'glTF') {
-        result = inspectGlb(arrayBuffer);
-      } else if (magic === 'DRAC' && textDecoder.decode(new Uint8Array(arrayBuffer, 4, 1)) === 'O') {
-        result = inspectDraco(arrayBuffer);
-      }
+        let result = null;
+        if (magic === 'pnts') {
+          result = inspectPnts(arrayBuffer);
+        } else if (magic === 'cmpt') {
+          result = inspectCmpt(arrayBuffer);
+        } else if (magic === 'b3dm') {
+          result = inspectB3dm(arrayBuffer, filename + '.glb');
+        } else if (magic === 'i3dm') {
+          result = inspectI3dm(arrayBuffer, filename + '.glb');
+        } else if (magic === 'glTF') {
+          result = inspectGlb(arrayBuffer);
+        } else if (magic === 'DRAC' && textDecoder.decode(new Uint8Array(arrayBuffer, 4, 1)) === 'O') {
+          result = inspectDraco(arrayBuffer);
+        }
 
-      if (result) {
-        resolve(result);
-      } else {
-        reject(`Unsupported format: "${magic}"`);
+        if (result) {
+          resolve(result);
+        } else {
+          reject(`Unsupported format: "${magic}"`);
+        }
+      } catch (error) {
+        reject(error && error.message ? error.message : String(error));
       }
     };
   });
