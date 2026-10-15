@@ -22,14 +22,13 @@ Open `http://127.0.0.1:8080/src`.
 
 ## Testing
 
-Tests require a **manually started** dev server at port 5504 (hardcoded in `tests/app.spec.js`):
+Tests run against a dev server on port 5504 (hardcoded in `tests/app.spec.js`). Playwright's `webServer` config starts `npx http-server -p 5504` automatically:
 
 ```bash
-npx http-server -p 5504 &
 npx playwright test
 ```
 
-The `webServer` config in `playwright.config.js` is commented out — don't rely on it.
+An already-running server on port 5504 is reused locally (`reuseExistingServer: !process.env.CI`); in CI Playwright starts its own. No manual server is required.
 
 - `npm test` installs Playwright browsers before running tests; use `npx playwright test` directly if browsers are already installed.
 - `fullyParallel: false` in Playwright config; tests run sequentially.
@@ -55,7 +54,7 @@ npm run show-test-report
 - **Core logic**: `src/inspect.js` — dispatches parsing by file magic bytes (`pnts`, `cmpt`, `b3dm`, `i3dm`, `glTF`, `DRACO`)
 - **Parsers**: `src/parse{B3dm,Cmpt,Glb,I3dm,Pnts,Draco,FeatureTableOrBatchTable}.js`
 - **Hex viewer**: `src/hexDump.js` runs as a Web Worker; `src/constructHexViewer.js` renders output
-- **Draco decoding**: WASM-based, loaded via `src/loadDracoDecoder.js`
+- **Draco decoding**: WASM-based, loaded via `src/parseDraco.js` (the legacy `src/loadDracoDecoder.js` is unused)
 - **UI**: CodeMirror (bundled in `src/thirdParty/codemirror-5.59.4`) for JSON display; drag-and-drop or file picker input
 
 No bundler, no transpiler — all source runs directly in the browser as ES modules.
