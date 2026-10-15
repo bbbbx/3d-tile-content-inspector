@@ -18,7 +18,7 @@ const textDecoder = new TextDecoder('utf8');
 function inspect(arrayBuffer, filename) {
   return new Promise((resolve, reject) => {
     hexDumpWorker.postMessage(arrayBuffer, [ arrayBuffer ]);
-    hexDumpWorker.onmessage = function(event) {
+    hexDumpWorker.onmessage = async function(event) {
       // FIXME: cost too expensive
       // use TextEncoder to encode string to arraybuffer,
       // then use TextDecoder to decode arraybuffer.
@@ -27,28 +27,8 @@ function inspect(arrayBuffer, filename) {
       constructHexViewer(hex, hexViewer);
 
       try {
-        const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
-
-        let result = null;
-        if (magic === 'pnts') {
-          result = inspectPnts(arrayBuffer);
-        } else if (magic === 'cmpt') {
-          result = inspectCmpt(arrayBuffer);
-        } else if (magic === 'b3dm') {
-          result = inspectB3dm(arrayBuffer, filename + '.glb');
-        } else if (magic === 'i3dm') {
-          result = inspectI3dm(arrayBuffer, filename + '.glb');
-        } else if (magic === 'glTF') {
-          result = inspectGlb(arrayBuffer);
-        } else if (magic === 'DRAC' && textDecoder.decode(new Uint8Array(arrayBuffer, 4, 1)) === 'O') {
-          result = inspectDraco(arrayBuffer);
-        }
-
-        if (result) {
-          resolve(result);
-        } else {
-          reject(`Unsupported format: "${magic}"`);
-        }
+        const result = await inspectArrayBuffer(arrayBuffer, filename);
+        resolve(result);
       } catch (error) {
         reject(error && error.message ? error.message : String(error));
       }
@@ -56,9 +36,28 @@ function inspect(arrayBuffer, filename) {
   });
 }
 
+function inspectArrayBuffer(arrayBuffer, filename) {
+  const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
 
-function extractFeatureTableAndBatchTable(parsedTile) {
-  const { tableObject: featureTable, featureLength } = parseFeatureTableOrBatchTable(parsedTile.featureTableJson, parsedTile.featureTableBinary);
+  if (magic === 'pnts') {
+    return inspectPnts(arrayBuffer);
+  } else if (magic === 'cmpt') {
+    return inspectCmpt(arrayBuffer);
+  } else if (magic === 'b3dm') {
+    return inspectB3dm(arrayBuffer, filename + '.glb');
+  } else if (magic === 'i3dm') {
+    return inspectI3dm(arrayBuffer, filename + '.glb');
+  } else if (magic === 'glTF') {
+    return inspectGlb(arrayBuffer);
+  } else if (magic === 'DRAC' && textDecoder.decode(new Uint8Array(arrayBuffer, 4, 1)) === 'O') {
+    return inspectDraco(arrayBuffer);
+  }
+
+  return Promise.reject(`Unsupported format: "${magic}"`);
+}
+
+async function extractFeatureTableAndBatchTable(parsedTile) {
+  const { tableObject: featureTable, featureLength } = await parseFeatureTableOrBatchTable(parsedTile.featureTableJson, parsedTile.featureTableBinary);
 
   let binary = parsedTile.batchTableBinary;
   if (parsedTile.magic === 'pnts' && parsedTile.batchTableJson) {
@@ -67,7 +66,7 @@ function extractFeatureTableAndBatchTable(parsedTile) {
       binary = parsedTile.featureTableBinary;
     }
   }
-  const { tableObject: batchTable } = parseFeatureTableOrBatchTable(parsedTile.batchTableJson, binary, featureLength);
+  const { tableObject: batchTable } = await parseFeatureTableOrBatchTable(parsedTile.batchTableJson, binary, featureLength);
 
   const rest = { ...parsedTile };
   delete rest.featureTableBinary;
@@ -104,17 +103,17 @@ function updateDownloadAnchor(arrayBuffer, filename) {
   ui.appendChild(anchorElem);
 }
 
-function inspectGlb(arrayBuffer) {
-  const glb = parseGlb(arrayBuffer);
+async function inspectGlb(arrayBuffer) {
+  const glb = await parseGlb(arrayBuffer);
 
   return glb;
 }
 
-function inspectDraco(arrayBuffer) {
+async function inspectDraco(arrayBuffer) {
   const bufferView = {
     byteLength: arrayBuffer.byteLength,
   };
-  const decodedDraco = decodePrimitive(new Uint8Array(arrayBuffer), bufferView, undefined, true);
+  const decodedDraco = await decodePrimitive(new Uint8Array(arrayBuffer), bufferView, undefined, true);
   const attributeData = decodedDraco.attributeData;
 
   for (const attributeId in attributeData) {
@@ -130,45 +129,45 @@ function inspectDraco(arrayBuffer) {
   return decodedDraco;
 }
 
-function inspectB3dm(arrayBuffer, filename) {
+async function inspectB3dm(arrayBuffer, filename) {
   let b3dm = parseB3dm(arrayBuffer);
 
   updateDownloadAnchor(b3dm.glb, filename);
 
-  const glb = parseGlb(b3dm.glb);
+  const glb = await parseGlb(b3dm.glb);
   b3dm.glb = glb;
 
-  b3dm = extractFeatureTableAndBatchTable(b3dm);
+  b3dm = await extractFeatureTableAndBatchTable(b3dm);
 
   return b3dm;
 }
 
-function inspectI3dm(arrayBuffer, filename) {
+async function inspectI3dm(arrayBuffer, filename) {
   let i3dm = parseI3dm(arrayBuffer);
 
   const urlOrGlb = i3dm.urlOrGlb;
   if (urlOrGlb instanceof ArrayBuffer) {
     updateDownloadAnchor(urlOrGlb, filename);
 
-    const glb = parseGlb(urlOrGlb);
+    const glb = await parseGlb(urlOrGlb);
     i3dm.urlOrGlb = glb;
   }
 
-  i3dm = extractFeatureTableAndBatchTable(i3dm);
+  i3dm = await extractFeatureTableAndBatchTable(i3dm);
 
   return i3dm;
 }
 
-function inspectPnts(arrayBuffer) {
+async function inspectPnts(arrayBuffer) {
 
   let pnts = parsePnts(arrayBuffer);
   validatePntsByteLength(pnts);
-  pnts = extractFeatureTableAndBatchTable(pnts);
+  pnts = await extractFeatureTableAndBatchTable(pnts);
 
   return pnts;
 }
 
-function inspectCmpt(arrayBuffer) {
+async function inspectCmpt(arrayBuffer) {
   const cmpt = parseCmpt(arrayBuffer);
 
   const tiles = cmpt.tiles;
@@ -178,19 +177,19 @@ function inspectCmpt(arrayBuffer) {
     if (tile.magic === 'pnts') {
       validatePntsByteLength(tile);
     } else if (tile.magic === 'b3dm') {
-      const glb = parseGlb(tile.glb);
+      const glb = await parseGlb(tile.glb);
       tile.glb = glb;
     } else if (tile.magic === 'i3dm') {
       const urlOrGlb = tile.urlOrGlb;
       if (urlOrGlb instanceof ArrayBuffer) {
-        const glb = parseGlb(urlOrGlb);
+        const glb = await parseGlb(urlOrGlb);
         tile.urlOrGlb = glb;
       } else if (typeof urlOrGlb !== 'string') {
         console.warn('unknown glTF format.')
       }
     }
 
-    tile = extractFeatureTableAndBatchTable(tile);
+    tile = await extractFeatureTableAndBatchTable(tile);
     tiles[i] = tile;
   }
 

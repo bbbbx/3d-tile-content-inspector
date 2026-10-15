@@ -168,7 +168,7 @@ function extractSemanticsValue(semantics, key, uint8ArrayView, length) {
   return value;
 }
 
-function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, featureLength) {
+async function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, featureLength) {
 
   if (!defined(featureTableJson)) {
     return {
@@ -205,7 +205,7 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
 
       const dracoDataArrayBufferView = featureTableBinary.subarray(byteOffset, byteOffset + byteLength);
 
-      const decoded = decodePrimitive(dracoDataArrayBufferView, { byteLength: byteLength }, properties);
+      const decoded = await decodePrimitive(dracoDataArrayBufferView, { byteLength: byteLength }, properties);
       const attributeData = decoded.attributeData;
 
       for (const attributeName of Object.keys(attributeData)) {

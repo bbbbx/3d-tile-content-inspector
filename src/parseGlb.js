@@ -39,7 +39,7 @@ function getChunkType(value) {
   }
 }
 
-function parseGlb(arrayBuffer) {
+async function parseGlb(arrayBuffer) {
   const dataView = new DataView(arrayBuffer);
   let byteOffset = 0;
 
@@ -133,7 +133,7 @@ function parseGlb(arrayBuffer) {
           const bufferView = glb.JSON.bufferViews[dracoExtension.bufferView];
           bufferView.byteOffset ??= 0;
           // const buffer = glb.JSON.buffers[bufferView.buffer];
-          const decodedResult = decodePrimitive(
+          const decodedResult = await decodePrimitive(
             new Uint8Array(binaryArrayBuffer, bufferView.byteOffset, bufferView.byteLength),
             bufferView,
             compressedAttributes
