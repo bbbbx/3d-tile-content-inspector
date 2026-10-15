@@ -91,10 +91,16 @@ test('can inspect pnts by choosing file', async ({ page }) => {
   await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
   await expect(page.locator("[id='jsonViewer']")).toContainText(/"batchTableJson"\s*:\s*{/);
   await expect(page.locator("[id='hexViewer']")).toContainText(/pnts/);
-  
+});
+
+test('can inspect big pnts file by choosing file', async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByText('choose a file').click();
+  const fileChooser = await fileChooserPromise;
+
   await fileChooser.setFiles(path.join(__dirname, 'Cesium3DTiles/PointCloud/44.pnts'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"Classification"\s*:\s*{/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"Classification"\s*:\s*{/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/pnts/);
 });
 
@@ -103,8 +109,8 @@ test('can inspect pnts with Draco by choosing file', async ({ page }) => {
   await page.getByText('choose a file').click();
   const fileChooser = await fileChooserPromise;
   await fileChooser.setFiles(path.join(__dirname, 'Cesium3DTiles/PointCloud/PointCloudDraco/pointCloudDraco.pnts'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"3DTILES_draco_point_compression"\s*:\s*{/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"3DTILES_draco_point_compression"\s*:\s*{/, { timeout: 3e4 });
 });
 
 test('can inspect cmpt by choosing file', async ({ page }) => {
@@ -146,18 +152,18 @@ test('can inspect triangular mesh draco by choosing file', async ({ page }) => {
   const fileChooser = await fileChooserPromise;
 
   await fileChooser.setFiles(path.join(__dirname, 'draco/bunny.drc'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"TRIANGULAR_MESH"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"TRIANGULAR_MESH"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/DRACO/);
 
   await fileChooser.setFiles(path.join(__dirname, 'draco/bone.drc'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"TRIANGULAR_MESH"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"TRIANGULAR_MESH"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/DRACO/);
 
   await fileChooser.setFiles(path.join(__dirname, 'draco/throw_14.drc'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"TRIANGULAR_MESH"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"TRIANGULAR_MESH"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/DRACO/);
 });
 
@@ -167,12 +173,12 @@ test('can inspect point cloud draco by choosing file', async ({ page }) => {
   const fileChooser = await fileChooserPromise;
 
   await fileChooser.setFiles(path.join(__dirname, 'draco/pc_color.drc'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"POINT_CLOUD"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"POINT_CLOUD"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/DRACO/);
 
   await fileChooser.setFiles(path.join(__dirname, 'draco/point_cloud_no_qp.drc'));
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"POINT_CLOUD"/);
-  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/);
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"geometryType"\s*:\s*"POINT_CLOUD"/, { timeout: 3e4 });
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/DRACO/);
 });

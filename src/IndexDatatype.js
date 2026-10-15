@@ -1,6 +1,8 @@
 import defined from "./defined.js";
 import WebGLConstants from "./WebGLConstants.js";
 
+const SIXTY_FOUR_KILOBYTES = 64 * 1024;
+
 /**
  * Constants for WebGL index datatypes.  These corresponds to the
  * <code>type</code> parameter of {@link http://www.khronos.org/opengles/sdk/docs/man/xhtml/glDrawElements.xml|drawElements}.
@@ -52,8 +54,6 @@ class IndexDatatype {
     return new Uint16Array(indicesLengthOrArray);
   }
 };
-
-const SIXTY_FOUR_KILOBYTES = 64 * 1024;
 
 export {
   IndexDatatype,

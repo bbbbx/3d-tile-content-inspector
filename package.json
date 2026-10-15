@@ -7,7 +7,8 @@
     "doc": "docs"
   },
   "scripts": {
-    "test": "npx playwright install && npx playwright test && npx playwright show-report"
+    "test": "npx playwright install chromium firefox && npx playwright test",
+    "show-test-report": "npx playwright show-report"
   },
   "keywords": [],
   "author": "",

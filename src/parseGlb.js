@@ -10,7 +10,7 @@ COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.INT, 4);
 COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.UNSIGNED_INT, 4);
 COMPONENT_TYPE_SIZE_IN_BYTES.set(WebGLConstants.FLOAT, 4);
 
-const COMPONENT_TYPE_TYPED_ARRAY = new window.Map();
+const COMPONENT_TYPE_TYPED_ARRAY = new Map();
 COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.BYTE, Int8Array);
 COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.UNSIGNED_BYTE, Uint8Array);
 COMPONENT_TYPE_TYPED_ARRAY.set(WebGLConstants.SHORT, Int16Array);
@@ -114,7 +114,7 @@ function parseGlb(arrayBuffer) {
     const meshes = glb.JSON.meshes || [];
     const meshesLength = meshes.length;
 
-    const maximumElementCount = Number.POSITIVE_INFINITY;
+    const maximumElementCount = 100;
 
     for (let i = 0; i < meshesLength; i++) {
       const mesh = meshes[i];
@@ -144,7 +144,7 @@ function parseGlb(arrayBuffer) {
           const attributes = primitive.attributes;
 
           for (const attributeName of Object.keys(attributes)) {
-            if (attributes.hasOwnProperty(attributeName)) {
+            if (Object.hasOwn(attributes, attributeName)) {
               const accessorIndex = attributes[attributeName];
               const attribute = extractAttribute(accessorIndex, accessors, bufferViews, buffers, binaryArrayBuffer, maximumElementCount); 
 
@@ -203,7 +203,7 @@ function extractAttribute(accessorIndex, accessors, bufferViews, buffers, arrayB
   const TypedArray = COMPONENT_TYPE_TYPED_ARRAY.get(componentType);
 
   // only extract 10 elements
-  maximumElementCount = maximumElementCount ?? 10;
+  maximumElementCount = maximumElementCount ?? 100;
   const displayElementCount = Math.min(elementCount, maximumElementCount);
 
   for (let ii = 0; ii < displayElementCount; ii++) {

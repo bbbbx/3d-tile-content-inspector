@@ -31,29 +31,19 @@
 <body>
   <div id="ui">
     <div class="ui-container">
-      Load tile content(<code>.pnts</code>, <code>.b3dm</code>, <code>.i3dm</code>, <code>.cmpt</code>), <code>.glb</code> or <code>draco</code> file from:
-      <ol>
-        <li><del><label for="url">URL(https only): </label><input disabled type="url" id="url" /> then <button id="inspect"><del>inspect</del></button> it</del></li>
-        <li>local file system, <label for="file"><strong>choose a file</strong></label> <input hidden="true" type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt, .glb, .drc" />,</li>
-        <li>drag it on window anywhere.</li>
+      <p class="ui-title">Load tile content (<code>.pnts</code>, <code>.b3dm</code>, <code>.i3dm</code>, <code>.cmpt</code>), <code>.glb</code> or <code>.drc</code> file from:</p>
+      <ol class="ui-options">
+        <li>local file system: <label for="file" class="file-label">choose a file</label> <input hidden="true" type="file" id="file" accept=".pnts, .b3dm, .i3dm, .cmpt, .glb, .drc" /></li>
+        <li>drag it anywhere on the window.</li>
       </ol>
     </div>
-      <p>NOTE: For performance, feature table can display up to 100 records, and hexadecimal viewer can display up to 512 kibibyte. See console for extracted attributes.</p>
-      <div id="info"></div>
-      <div id="warning"></div>
-      <div id="error"></div>
+    <p class="ui-note">NOTE: For performance, feature table can display up to 100 records, and hexadecimal viewer can display up to 512 kibibyte. See console for extracted attributes.</p>
+    <div id="info"></div>
+    <div id="warning"></div>
+    <div id="error"></div>
   </div>
   <div id="jsonViewer"></div>
   <div id="hexViewer"></div>
-
-  <!-- fork on github -->
-  <!-- <div id="forkongithub">
-    <div>
-      <div>
-        <a href="https://github.com/bbbbx/3d-tile-content-inspector" target="blank">Fix, Fork, Contribute <img src="./image/octocat-icon.svg" alt="octocat-icon.svg"></a>
-      </div>
-    </div>
-  </div> -->
 
   <script type="module" src="./index.js"></script>
 </body>

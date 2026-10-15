@@ -103,14 +103,14 @@ const GLOBAL_SEMANTICS = {
   }
 };
 
-const getNumberOfComponents = {
+const NUMBER_OF_COMPONENTS = {
   SCALAR: 1,
   VEC2: 2,
   VEC3: 3,
   VEC4: 4,
 };
 
-const getComponentType = {
+const COMPONENT_TYPE_TYPED_ARRAY = {
   BYTE: Int8Array,
   UNSIGNED_BYTE: Uint8Array,
   SHORT: Int16Array,
@@ -121,51 +121,48 @@ const getComponentType = {
   DOUBLE: Float64Array,
 };
 
-function extractSemanticsValue(semantics, key, uint8ArrayView, length) {
-  const typeOfValue = Object.prototype.toString.call(semantics);
+function getSemanticsType(name) {
+  return (FEATURE_SEMANTICS[name] && FEATURE_SEMANTICS[name].type) ||
+    (GLOBAL_SEMANTICS[name] && GLOBAL_SEMANTICS[name].type);
+}
 
+function extractSemanticsValue(semantics, key, uint8ArrayView, length) {
   let value;
 
-  switch (typeOfValue) {
-    case '[object Object]':
-      let { byteOffset, componentType, type } = semantics;
+  if (Array.isArray(semantics)) {
+    value = semantics;
+  } else if (typeof semantics === 'number') {
+    value = semantics;
+  } else if (typeof semantics === 'object' && semantics !== null) {
+    let { byteOffset, componentType, type } = semantics;
 
-      if (!defined(componentType)) {
-        if (FEATURE_SEMANTICS[key]) {
-          componentType = FEATURE_SEMANTICS[key].componentType;
-        } else {
-          return;
-        }
+    if (!defined(componentType)) {
+      if (FEATURE_SEMANTICS[key]) {
+        componentType = FEATURE_SEMANTICS[key].componentType;
+      } else {
+        return;
       }
-      if (!defined(type)) {
-        type = FEATURE_SEMANTICS[key].type;
-      }
+    }
+    if (!defined(type)) {
+      type = FEATURE_SEMANTICS[key].type;
+    }
 
-      const numberOfComponents = getNumberOfComponents[type];
-      const constructor = getComponentType[componentType];
-      const bytesLengthOfComponent = constructor.BYTES_PER_ELEMENT;
-      const bytesLength = bytesLengthOfComponent * numberOfComponents * length;
-      const offsetBufferView = new constructor(
-        uint8ArrayView.buffer.slice(
-          uint8ArrayView.byteOffset + byteOffset,
-          uint8ArrayView.byteOffset + byteOffset + bytesLength
-        )
-      );
+    const numberOfComponents = NUMBER_OF_COMPONENTS[type];
+    const constructor = COMPONENT_TYPE_TYPED_ARRAY[componentType];
+    const bytesLengthOfComponent = constructor.BYTES_PER_ELEMENT;
+    const bytesLength = bytesLengthOfComponent * numberOfComponents * length;
+    const offsetBufferView = new constructor(
+      uint8ArrayView.buffer.slice(
+        uint8ArrayView.byteOffset + byteOffset,
+        uint8ArrayView.byteOffset + byteOffset + bytesLength
+      )
+    );
 
-      value = [];
-      for (let i = 0; i < offsetBufferView.length; i += numberOfComponents) {
-        const v = Array.from(offsetBufferView.subarray(i, i + numberOfComponents));
-        value.push(v);
-      }
-
-      break;
-    case '[object Array]':
-      value = semantics;
-      break;
-    case '[object Number]':
-      value = semantics;
-      break;
-    default:
+    value = [];
+    for (let i = 0; i < offsetBufferView.length; i += numberOfComponents) {
+      const v = Array.from(offsetBufferView.subarray(i, i + numberOfComponents));
+      value.push(v);
+    }
   }
 
   return value;
@@ -202,7 +199,7 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
   if (extensions) {
     const dracoPointCompressionExtension = extensions['3DTILES_draco_point_compression'];
     if (dracoPointCompressionExtension) {
-      const properties = dracoPointCompressionExtension.properties
+      const properties = dracoPointCompressionExtension.properties;
       const byteOffset = dracoPointCompressionExtension.byteOffset ?? 0;
       const byteLength = dracoPointCompressionExtension.byteLength ?? featureTableBinary.byteLength;
 
@@ -212,24 +209,21 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
       const attributeData = decoded.attributeData;
 
       for (const attributeName of Object.keys(attributeData)) {
-        if (attributeData.hasOwnProperty(attributeName)) {
+        if (Object.hasOwn(attributeData, attributeName)) {
           extractedFeatureTable[attributeName] = [];
 
           const attributeArray = attributeData[attributeName].array;
           const semantics = featureTableJson[attributeName];
           let type = semantics.type;
           if (!defined(type)) {
-            type = FEATURE_SEMANTICS[attributeName].type;
-          }
-          if (!defined(type)) {
-            type = GLOBAL_SEMANTICS[attributeName].type;
+            type = getSemanticsType(attributeName);
           }
           if (!defined(type)) {
             console.warn('Can not find semantics of ' + attributeName + '.');
             continue;
           }
 
-          const numberOfComponents = getNumberOfComponents[type];
+          const numberOfComponents = NUMBER_OF_COMPONENTS[type];
           for (let i = 0; i < featureLength; i++) {
             const feature = [];
             for (let j = 0; j < numberOfComponents; j++) {
@@ -246,16 +240,15 @@ function parseFeatureTableOrBatchTable(featureTableJson, featureTableBinary, fea
   } else {
 
     for (const key of Object.keys(featureTableJson)) {
-      if (featureTableJson.hasOwnProperty(key)) {
+      if (Object.hasOwn(featureTableJson, key)) {
         const semantics = featureTableJson[key];
         if (GLOBAL_SEMANTICS[key]) {
           featureTableJson[key] = extractSemanticsValue(semantics, key, featureTableBinary, 1);
           continue;
         }
-  
-        const typeOfSemantics = Object.prototype.toString.call(semantics);
+
         // exclude number and array
-        if (typeOfSemantics === '[object Object]') {
+        if (typeof semantics === 'object' && semantics !== null && !Array.isArray(semantics)) {
           const semanticsValue = extractSemanticsValue(semantics, key, featureTableBinary, featureLength);
           extractedFeatureTable[key] = semanticsValue;
         }

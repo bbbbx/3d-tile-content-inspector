@@ -13,11 +13,12 @@ const warningElem = document.getElementById('warning');
 
 const hexDumpWorker = new Worker('./hexDump.js', { type: 'module' });
 
-function inspect(arrayBuffer, filename) {
+const textDecoder = new TextDecoder('utf8');
 
+function inspect(arrayBuffer, filename) {
   return new Promise((resolve, reject) => {
     hexDumpWorker.postMessage(arrayBuffer, [ arrayBuffer ]);
-    hexDumpWorker.addEventListener('message', function resolveHexString(event) {
+    hexDumpWorker.onmessage = function(event) {
       // FIXME: cost too expensive
       // use TextEncoder to encode string to arraybuffer,
       // then use TextDecoder to decode arraybuffer.
@@ -25,7 +26,6 @@ function inspect(arrayBuffer, filename) {
       const { hex, arrayBuffer } = event.data;
       constructHexViewer(hex, hexViewer);
 
-      const textDecoder = new TextDecoder('utf8');
       const magic = textDecoder.decode(new Uint8Array(arrayBuffer, 0, 4));
 
       let result = null;
@@ -48,7 +48,7 @@ function inspect(arrayBuffer, filename) {
       } else {
         reject(`Unsupported format: "${magic}"`);
       }
-    });
+    };
   });
 }
 
@@ -65,15 +65,15 @@ function extractFeatureTableAndBatchTable(parsedTile) {
   }
   const { tableObject: batchTable } = parseFeatureTableOrBatchTable(parsedTile.batchTableJson, binary, featureLength);
 
-  parsedTile = {
-    ...parsedTile,
+  const rest = { ...parsedTile };
+  delete rest.featureTableBinary;
+  delete rest.batchTableBinary;
+
+  return {
+    ...rest,
     ...featureTable,
     ...batchTable,
   };
-  delete parsedTile.featureTableBinary;
-  delete parsedTile.batchTableBinary;
-
-  return parsedTile;
 }
 
 function createAnchorForDownload(arrayBuffer, filename) {
@@ -88,6 +88,16 @@ function createAnchorForDownload(arrayBuffer, filename) {
 
   // TODO: call URL.revokeObjectURL(objectURL);
   return anchor;
+}
+
+function updateDownloadAnchor(arrayBuffer, filename) {
+  const oldAnchorElem = document.getElementById('download');
+  if (oldAnchorElem) {
+    ui.removeChild(oldAnchorElem);
+  }
+
+  const anchorElem = createAnchorForDownload(arrayBuffer, filename);
+  ui.appendChild(anchorElem);
 }
 
 function inspectGlb(arrayBuffer) {
@@ -119,13 +129,7 @@ function inspectDraco(arrayBuffer) {
 function inspectB3dm(arrayBuffer, filename) {
   let b3dm = parseB3dm(arrayBuffer);
 
-  const oldAnchorELem = document.getElementById('download');
-  if (oldAnchorELem) {
-    ui.removeChild(oldAnchorELem);
-  }
-
-  const anchorElem = createAnchorForDownload(b3dm.glb, filename);
-  ui.appendChild(anchorElem);
+  updateDownloadAnchor(b3dm.glb, filename);
 
   const glb = parseGlb(b3dm.glb);
   b3dm.glb = glb;
@@ -140,13 +144,7 @@ function inspectI3dm(arrayBuffer, filename) {
 
   const urlOrGlb = i3dm.urlOrGlb;
   if (urlOrGlb instanceof ArrayBuffer) {
-    const oldAnchorELem = document.getElementById('download');
-    if (oldAnchorELem) {
-      ui.removeChild(oldAnchorELem);
-    }
-
-    const anchorElem = createAnchorForDownload(urlOrGlb, filename);
-    ui.appendChild(anchorElem);
+    updateDownloadAnchor(urlOrGlb, filename);
 
     const glb = parseGlb(urlOrGlb);
     i3dm.urlOrGlb = glb;
@@ -183,9 +181,7 @@ function inspectCmpt(arrayBuffer) {
       if (urlOrGlb instanceof ArrayBuffer) {
         const glb = parseGlb(urlOrGlb);
         tile.urlOrGlb = glb;
-      } else if (typeof urlOrGlb === 'string') {
-        tile.urlOrGlb = urlOrGlb;
-      } else {
+      } else if (typeof urlOrGlb !== 'string') {
         console.warn('unknown glTF format.')
       }
     }

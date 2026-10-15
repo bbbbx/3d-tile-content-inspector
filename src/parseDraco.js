@@ -2,6 +2,21 @@ import defined from "./defined.js";
 import ComponentDatatype from "./ComponentDatatype.js";
 import { IndexDatatype } from "./IndexDatatype.js";
 
+const DRACO_DATA_TYPE = {
+  INVALID: 0,
+  INT8: 1,
+  UINT8: 2,
+  INT16: 3,
+  UINT16: 4,
+  INT32: 5,
+  UINT32: 6,
+  INT64: 7,
+  UINT64: 8,
+  FLOAT32: 9,
+  FLOAT64: 10,
+  BOOL: 11,
+};
+
 function createDecoderModule() {
   return DracoDecoderModule({});
 }
@@ -203,6 +218,12 @@ function decodePrimitive(typedArray, bufferView, compressedAttributes, useDefaul
   return result;
 }
 
+function fillTypedArray(attributeData, vertexArray, length) {
+  for (let i = 0; i < length; ++i) {
+    vertexArray[i] = attributeData.GetValue(i);
+  }
+}
+
 function decodeQuantizedDracoTypedArray(
   dracoGeometry,
   dracoDecoder,
@@ -238,9 +259,7 @@ function decodeQuantizedDracoTypedArray(
     );
   }
 
-  for (let i = 0; i < vertexArrayLength; ++i) {
-    vertexArray[i] = attributeData.GetValue(i);
-  }
+  fillTypedArray(attributeData, vertexArray, vertexArrayLength);
 
   decoderModule.destroy(attributeData);
   return vertexArray;
@@ -258,12 +277,12 @@ function decodeDracoTypedArray(
 
   // Some attribute types are casted down to 32 bit since Draco only returns 32 bit values
   switch (dracoAttribute.data_type()) {
-    case 0:
+    case DRACO_DATA_TYPE.INVALID:
       // FIXME:
       console.warn(attributeName, 'data type is 0');
       return new Uint8Array(new Array(vertexArrayLength).fill(0));
-    case 1:
-    case 11: // DT_INT8 or DT_BOOL
+    case DRACO_DATA_TYPE.INT8:
+    case DRACO_DATA_TYPE.BOOL: // DT_INT8 or DT_BOOL
       attributeData = new decoderModule.DracoInt8Array();
       vertexArray = new Int8Array(vertexArrayLength);
       dracoDecoder.GetAttributeInt8ForAllPoints(
@@ -272,7 +291,7 @@ function decodeDracoTypedArray(
         attributeData
       );
       break;
-    case 2: // DT_UINT8
+    case DRACO_DATA_TYPE.UINT8: // DT_UINT8
       attributeData = new decoderModule.DracoUInt8Array();
       vertexArray = new Uint8Array(vertexArrayLength);
       dracoDecoder.GetAttributeUInt8ForAllPoints(
@@ -281,7 +300,7 @@ function decodeDracoTypedArray(
         attributeData
       );
       break;
-    case 3: // DT_INT16
+    case DRACO_DATA_TYPE.INT16: // DT_INT16
       attributeData = new decoderModule.DracoInt16Array();
       vertexArray = new Int16Array(vertexArrayLength);
       dracoDecoder.GetAttributeInt16ForAllPoints(
@@ -290,7 +309,7 @@ function decodeDracoTypedArray(
         attributeData
       );
       break;
-    case 4: // DT_UINT16
+    case DRACO_DATA_TYPE.UINT16: // DT_UINT16
       attributeData = new decoderModule.DracoUInt16Array();
       vertexArray = new Uint16Array(vertexArrayLength);
       dracoDecoder.GetAttributeUInt16ForAllPoints(
@@ -299,8 +318,8 @@ function decodeDracoTypedArray(
         attributeData
       );
       break;
-    case 5:
-    case 7: // DT_INT32 or DT_INT64
+    case DRACO_DATA_TYPE.INT32:
+    case DRACO_DATA_TYPE.INT64: // DT_INT32 or DT_INT64
       attributeData = new decoderModule.DracoInt32Array();
       vertexArray = new Int32Array(vertexArrayLength);
       dracoDecoder.GetAttributeInt32ForAllPoints(
@@ -309,8 +328,8 @@ function decodeDracoTypedArray(
         attributeData
       );
       break;
-    case 6:
-    case 8: // DT_UINT32 or DT_UINT64
+    case DRACO_DATA_TYPE.UINT32:
+    case DRACO_DATA_TYPE.UINT64: // DT_UINT32 or DT_UINT64
       attributeData = new decoderModule.DracoUInt32Array();
       vertexArray = new Uint32Array(vertexArrayLength);
       dracoDecoder.GetAttributeUInt32ForAllPoints(
@@ -319,8 +338,8 @@ function decodeDracoTypedArray(
         attributeData
       );
       break;
-    case 9:
-    case 10: // DT_FLOAT32 or DT_FLOAT64
+    case DRACO_DATA_TYPE.FLOAT32:
+    case DRACO_DATA_TYPE.FLOAT64: // DT_FLOAT32 or DT_FLOAT64
       attributeData = new decoderModule.DracoFloat32Array();
       vertexArray = new Float32Array(vertexArrayLength);
       dracoDecoder.GetAttributeFloatForAllPoints(
@@ -331,9 +350,7 @@ function decodeDracoTypedArray(
       break;
   }
 
-  for (let i = 0; i < vertexArrayLength; ++i) {
-    vertexArray[i] = attributeData.GetValue(i);
-  }
+  fillTypedArray(attributeData, vertexArray, vertexArrayLength);
 
   decoderModule.destroy(attributeData);
   return vertexArray;

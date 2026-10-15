@@ -1,30 +1,20 @@
+import { readMagic, assertMagic, assertVersion } from "./tileFormat.js";
 import { parseB3dm } from "./parseB3dm.js";
 import { parseI3dm } from "./parseI3dm.js";
 import { parsePnts } from "./parsePnts.js";
 
 function parseCmpt(arrayBuffer) {
   const uint8Array = new Uint8Array(arrayBuffer);
-
-  const textDecoder = new TextDecoder('utf8');
-  const magic = textDecoder.decode(uint8Array.slice(0, 4));
-
-  if (magic !== 'cmpt') {
-    throw new Error('the magic number \'' + magic + '\' is not \'cmpt\'');
-  }
-
   const view = new DataView(arrayBuffer);
+
+  const magic = readMagic(uint8Array);
+  assertMagic(magic, 'cmpt');
+
   let offset = 4;
 
   const version = view.getUint32(offset, true);
   offset += Uint32Array.BYTES_PER_ELEMENT;
-
-  if (version !== 1) {
-    throw new Error(
-      "Only tile version 1 is supported.  Version " +
-        version +
-        " is not."
-    );
-  }
+  assertVersion(version, 'tile');
 
   const byteLength = view.getUint32(offset, true);
   offset += Uint32Array.BYTES_PER_ELEMENT;
@@ -35,26 +25,20 @@ function parseCmpt(arrayBuffer) {
   const tiles = [];
 
   for (let i = 0; i < tilesLength; i++) {
-
-    const tileMagic = textDecoder.decode(uint8Array.slice(offset, offset + 4));
+    const tileMagic = readMagic(uint8Array.slice(offset, offset + 4));
     offset += 4;
-    console.log(tileMagic)
+    console.log(tileMagic);
 
     const tileVersion = view.getUint32(offset, true);
     offset += Uint32Array.BYTES_PER_ELEMENT;
-    if (tileVersion !== 1) {
-      throw new Error(
-        "Only tile version 1 is supported.  Version " +
-          tileVersion +
-          " is not."
-      );
-    }
+    assertVersion(tileVersion, 'tile');
 
     const tileByteLength = view.getUint32(offset, true);
     offset += Uint32Array.BYTES_PER_ELEMENT;
 
     const tileOffset = offset - 12;
     const tileContentArrayBuffer = arrayBuffer.slice(tileOffset, tileOffset + tileByteLength);
+
     let tileContent;
     if (tileMagic === 'pnts') {
       tileContent = parsePnts(tileContentArrayBuffer);
@@ -63,7 +47,7 @@ function parseCmpt(arrayBuffer) {
     } else if (tileMagic === 'i3dm') {
       tileContent = parseI3dm(tileContentArrayBuffer);
     } else if (tileMagic === 'cmpt') {
-      tileContentArrayBuffer = parseCmpt(arrayBuffer.slice(tileOffset, tileOffset + tileByteLength));
+      tileContent = parseCmpt(tileContentArrayBuffer);
     } else {
       console.warn('Unsupported content format \'' + tileMagic + '\'');
     }
@@ -73,7 +57,6 @@ function parseCmpt(arrayBuffer) {
     }
 
     offset += tileByteLength - Uint32Array.BYTES_PER_ELEMENT * 3;
-
   }
 
   return {
@@ -82,7 +65,7 @@ function parseCmpt(arrayBuffer) {
     byteLength,
     tilesLength,
     tiles
-  }
+  };
 }
 
 export {
