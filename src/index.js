@@ -7,8 +7,6 @@ const warningElem = document.getElementById('warning');
 const fileElem = document.getElementById('file');
 const jsonViewer = document.getElementById('jsonViewer');
 const feedbackElem = document.getElementById('feedback');
-const urlForm = document.getElementById('urlForm');
-const urlInput = document.getElementById('urlInput');
 
 const ISSUE_URL = 'https://github.com/bbbbx/3d-tile-content-inspector/issues/new';
 
@@ -175,7 +173,6 @@ async function inspectFromUrl(url) {
 
   const filename = filenameFromUrl(resolvedUrl);
   setUrlParam(url);
-  urlInput.value = resolvedUrl.href;
   setInfo('Loading...', true);
 
   let arrayBuffer;
@@ -190,9 +187,12 @@ async function inspectFromUrl(url) {
       return;
     }
     setInfo('');
-    // fetch() rejects with a TypeError for network and CORS failures.
-    const hint = error instanceof TypeError ? ' (network error, or the server does not allow cross-origin requests)' : '';
-    errorElem.innerText = `Failed to load ${resolvedUrl.href}: ${error.message}${hint}`;
+    // fetch() rejects with a TypeError for network and CORS failures; the
+    // two can't be told apart, and CORS is the usual cause.
+    const reason = error instanceof TypeError
+      ? 'the server does not allow cross-origin requests, or the network is unavailable. Download the file and drop it here instead.'
+      : error.message;
+    errorElem.innerText = `Failed to load ${resolvedUrl.href}: ${reason}`;
     return;
   }
   if (fetching !== latestInspection) {
@@ -207,11 +207,8 @@ for (const sampleElem of document.querySelectorAll('[data-sample]')) {
   sampleElem.addEventListener('click', () => inspectFromUrl(sampleElem.dataset.sample));
 }
 
-urlForm.addEventListener('submit', event => {
-  event.preventDefault();
-  inspectFromUrl(urlInput.value.trim());
-});
-
+// ?url=<file URL> loads a file on startup (not exposed in the UI; the server
+// must allow cross-origin requests).
 const initialUrl = new URLSearchParams(location.search).get('url');
 if (initialUrl) {
   inspectFromUrl(initialUrl);

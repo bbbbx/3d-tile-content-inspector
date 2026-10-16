@@ -297,17 +297,18 @@ test('overlapping inspections each get their own result', async ({ page }) => {
 });
 
 test('?url= loads a file on startup', async ({ page }) => {
+  await page.goto(url + '/src/?url=' + encodeURIComponent(url + '/tests/Cesium3DTiles/PointCloud/PointCloudRGB/pointCloudRGB.pnts'));
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
+
+  // Relative to the page, as the samples are.
   await page.goto(url + '/src/?url=samples/composite.cmpt');
   await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"cmpt"/);
-  await expect(page.locator('#urlInput')).toHaveValue(url + '/src/samples/composite.cmpt');
 });
 
-test('can inspect a file from a URL and share it as a link', async ({ page }) => {
-  const fileUrl = url + '/tests/Cesium3DTiles/PointCloud/PointCloudRGB/pointCloudRGB.pnts';
-  await page.locator('#urlInput').fill(fileUrl);
-  await page.locator('#urlInput').press('Enter');
+test('samples are shareable via ?url= and a local file drops it', async ({ page }) => {
+  await page.getByRole('button', { name: /\.pnts/ }).click();
   await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
-  expect(new URL(page.url()).searchParams.get('url')).toBe(fileUrl);
+  expect(new URL(page.url()).searchParams.get('url')).toBe('samples/pointCloudRGB.pnts');
 
   // A local file is not shareable, so the parameter is dropped.
   await page.locator('#file').setInputFiles(path.join(__dirname, 'glb/Box.glb'));
@@ -316,10 +317,15 @@ test('can inspect a file from a URL and share it as a link', async ({ page }) =>
 });
 
 test('reports URLs that cannot be loaded', async ({ page }) => {
-  await page.locator('#urlInput').fill(url + '/tests/missing.b3dm');
-  await page.getByRole('button', { name: 'Load' }).click();
+  const open = fileUrl => page.goto(url + '/src/?url=' + encodeURIComponent(fileUrl));
+
+  await open(url + '/tests/missing.b3dm');
   await expect(page.locator('#error')).toContainText('404');
 
-  await page.goto(url + '/src/?url=' + encodeURIComponent('ftp://example.com/tile.b3dm'));
+  // Unreachable server: reported like a CORS failure, with the workaround.
+  await open('http://127.0.0.1:1/tile.b3dm');
+  await expect(page.locator('#error')).toContainText('Download the file and drop it here instead.');
+
+  await open('ftp://example.com/tile.b3dm');
   await expect(page.locator('#error')).toContainText('Only http(s) URLs are supported');
 });

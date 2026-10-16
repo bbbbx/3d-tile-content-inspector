@@ -172,51 +172,6 @@ code {
   background: #187733;
 }
 
-.url-form {
-  display: inline-flex;
-  gap: 6px;
-  vertical-align: middle;
-}
-
-.url-form input {
-  width: 280px;
-  max-width: 50vw;
-  padding: 4px 8px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--text);
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-}
-
-.url-form input:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-  border-color: var(--accent);
-}
-
-.url-button {
-  padding: 4px 12px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.url-button:hover {
-  background: #eaeef2;
-}
-
-.url-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
 #download {
   display: inline-block;
   margin-top: 10px;

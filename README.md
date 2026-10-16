@@ -17,7 +17,7 @@
 
 - Colour-coded hex viewer: headers, feature/batch tables and glTF chunks are highlighted, with a legend to jump to each section.
 - Click a field such as `featureTableJson` or `glb` in the JSON view to reveal its bytes.
-- Load from a URL, or open `?url=<file URL>` to share a link that loads the file directly (the server must allow CORS).
+- Open `?url=<file URL>` to load a file directly, e.g. to share a link (the server must allow CORS).
 - Sample files on the start screen (see `src/samples/README.md` for sources and licenses).
 - Files are parsed locally in the browser and never uploaded.
 
