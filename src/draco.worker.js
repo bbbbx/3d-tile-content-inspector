@@ -56,13 +56,6 @@ function getSizeInBytes(componentDatatype) {
   return size;
 }
 
-function createIndexTypedArray(numberOfVertices, length) {
-  if (numberOfVertices >= 64 * 1024) {
-    return new Uint32Array(length);
-  }
-  return new Uint16Array(length);
-}
-
 let decoderModulePromise;
 
 function loadDecoderModule() {
@@ -78,6 +71,17 @@ function loadDecoderModule() {
     })();
   }
   return decoderModulePromise;
+}
+
+/**
+ * Copies a WASM-heap array into a new, JS-owned typed array, then frees the
+ * heap allocation.
+ */
+function copyFromHeap(module, ptr, TypedArray, length) {
+  // Read HEAPU8.buffer only after decoding: memory growth replaces it.
+  const array = new TypedArray(module.HEAPU8.buffer, ptr, length).slice();
+  module._free(ptr);
+  return array;
 }
 
 function decodeAttribute(module, dracoGeometry, dracoDecoder, dracoAttribute, attributeName) {
@@ -232,111 +236,104 @@ async function decodePrimitive(typedArray, compressedAttributes, useDefaultAttri
   return result;
 }
 
-function fillTypedArray(attributeData, vertexArray, length) {
-  for (let i = 0; i < length; ++i) {
-    vertexArray[i] = attributeData.GetValue(i);
+/**
+ * Decodes all values of an attribute into the WASM heap with one bulk call,
+ * then copies it into a JS-owned typed array.
+ */
+function getAttributeDataArray(module, dracoGeometry, dracoDecoder, dracoAttribute, dracoDataType, TypedArray, vertexArrayLength) {
+  const byteLength = vertexArrayLength * TypedArray.BYTES_PER_ELEMENT;
+  const ptr = module._malloc(byteLength);
+  const ok = dracoDecoder.GetAttributeDataArrayForAllPoints(dracoGeometry, dracoAttribute, dracoDataType, byteLength, ptr);
+  if (!ok) {
+    module._free(ptr);
+    throw new Error('Failed to decode draco attribute data.');
   }
+  return copyFromHeap(module, ptr, TypedArray, vertexArrayLength);
 }
 
 function decodeQuantizedDracoTypedArray(module, dracoGeometry, dracoDecoder, dracoAttribute, quantization, vertexArrayLength) {
-  let vertexArray;
-  let attributeData;
+  let dracoDataType;
+  let TypedArray;
   if (quantization.quantizationBits <= 8) {
-    attributeData = new module.DracoUInt8Array();
-    vertexArray = new Uint8Array(vertexArrayLength);
-    dracoDecoder.GetAttributeUInt8ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+    dracoDataType = module.DT_UINT8;
+    TypedArray = Uint8Array;
   } else if (quantization.quantizationBits <= 16) {
-    attributeData = new module.DracoUInt16Array();
-    vertexArray = new Uint16Array(vertexArrayLength);
-    dracoDecoder.GetAttributeUInt16ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+    dracoDataType = module.DT_UINT16;
+    TypedArray = Uint16Array;
   } else {
-    attributeData = new module.DracoFloat32Array();
-    vertexArray = new Float32Array(vertexArrayLength);
-    dracoDecoder.GetAttributeFloatForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+    dracoDataType = module.DT_FLOAT32;
+    TypedArray = Float32Array;
   }
 
-  fillTypedArray(attributeData, vertexArray, vertexArrayLength);
-
-  module.destroy(attributeData);
-  return vertexArray;
+  return getAttributeDataArray(module, dracoGeometry, dracoDecoder, dracoAttribute, dracoDataType, TypedArray, vertexArrayLength);
 }
 
 function decodeDracoTypedArray(module, dracoGeometry, dracoDecoder, dracoAttribute, vertexArrayLength, attributeName) {
-  let vertexArray;
-  let attributeData;
+  let dracoDataType;
+  let TypedArray;
 
   switch (dracoAttribute.data_type()) {
     case DRACO_DATA_TYPE.INVALID:
       console.warn(attributeName, 'data type is 0');
-      return new Uint8Array(new Array(vertexArrayLength).fill(0));
+      return new Uint8Array(vertexArrayLength);
     case DRACO_DATA_TYPE.INT8:
     case DRACO_DATA_TYPE.BOOL:
-      attributeData = new module.DracoInt8Array();
-      vertexArray = new Int8Array(vertexArrayLength);
-      dracoDecoder.GetAttributeInt8ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_INT8;
+      TypedArray = Int8Array;
       break;
     case DRACO_DATA_TYPE.UINT8:
-      attributeData = new module.DracoUInt8Array();
-      vertexArray = new Uint8Array(vertexArrayLength);
-      dracoDecoder.GetAttributeUInt8ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_UINT8;
+      TypedArray = Uint8Array;
       break;
     case DRACO_DATA_TYPE.INT16:
-      attributeData = new module.DracoInt16Array();
-      vertexArray = new Int16Array(vertexArrayLength);
-      dracoDecoder.GetAttributeInt16ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_INT16;
+      TypedArray = Int16Array;
       break;
     case DRACO_DATA_TYPE.UINT16:
-      attributeData = new module.DracoUInt16Array();
-      vertexArray = new Uint16Array(vertexArrayLength);
-      dracoDecoder.GetAttributeUInt16ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_UINT16;
+      TypedArray = Uint16Array;
       break;
     case DRACO_DATA_TYPE.INT32:
     case DRACO_DATA_TYPE.INT64:
-      attributeData = new module.DracoInt32Array();
-      vertexArray = new Int32Array(vertexArrayLength);
-      dracoDecoder.GetAttributeInt32ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_INT32;
+      TypedArray = Int32Array;
       break;
     case DRACO_DATA_TYPE.UINT32:
     case DRACO_DATA_TYPE.UINT64:
-      attributeData = new module.DracoUInt32Array();
-      vertexArray = new Uint32Array(vertexArrayLength);
-      dracoDecoder.GetAttributeUInt32ForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_UINT32;
+      TypedArray = Uint32Array;
       break;
     case DRACO_DATA_TYPE.FLOAT32:
     case DRACO_DATA_TYPE.FLOAT64:
-      attributeData = new module.DracoFloat32Array();
-      vertexArray = new Float32Array(vertexArrayLength);
-      dracoDecoder.GetAttributeFloatForAllPoints(dracoGeometry, dracoAttribute, attributeData);
+      dracoDataType = module.DT_FLOAT32;
+      TypedArray = Float32Array;
       break;
+    default:
+      throw new Error(`unknown Draco data type of ${attributeName}: ${dracoAttribute.data_type()}.`);
   }
 
-  fillTypedArray(attributeData, vertexArray, vertexArrayLength);
-
-  module.destroy(attributeData);
-  return vertexArray;
+  return getAttributeDataArray(module, dracoGeometry, dracoDecoder, dracoAttribute, dracoDataType, TypedArray, vertexArrayLength);
 }
 
 function decodeIndexArray(module, dracoGeometry, dracoDecoder) {
   const numPoints = dracoGeometry.num_points();
   const numFaces = dracoGeometry.num_faces();
-  const faceIndices = new module.DracoInt32Array();
   const numIndices = numFaces * 3;
-  const indexArray = createIndexTypedArray(numPoints, numIndices);
 
-  let offset = 0;
-  for (let i = 0; i < numFaces; ++i) {
-    dracoDecoder.GetFaceFromMesh(dracoGeometry, i, faceIndices);
-
-    indexArray[offset + 0] = faceIndices.GetValue(0);
-    indexArray[offset + 1] = faceIndices.GetValue(1);
-    indexArray[offset + 2] = faceIndices.GetValue(2);
-    offset += 3;
+  const use32Bit = numPoints >= 64 * 1024;
+  const TypedArray = use32Bit ? Uint32Array : Uint16Array;
+  const byteLength = numIndices * TypedArray.BYTES_PER_ELEMENT;
+  const ptr = module._malloc(byteLength);
+  const ok = use32Bit
+    ? dracoDecoder.GetTrianglesUInt32Array(dracoGeometry, byteLength, ptr)
+    : dracoDecoder.GetTrianglesUInt16Array(dracoGeometry, byteLength, ptr);
+  if (!ok) {
+    module._free(ptr);
+    throw new Error('Failed to decode draco index data.');
   }
 
-  module.destroy(faceIndices);
-
   return {
-    typedArray: indexArray,
+    typedArray: copyFromHeap(module, ptr, TypedArray, numIndices),
     numberOfIndices: numIndices,
   };
 }
