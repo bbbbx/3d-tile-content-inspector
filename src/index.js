@@ -7,6 +7,8 @@ const warningElem = document.getElementById('warning');
 const fileElem = document.getElementById('file');
 const jsonViewer = document.getElementById('jsonViewer');
 const feedbackElem = document.getElementById('feedback');
+const urlForm = document.getElementById('urlForm');
+const urlInput = document.getElementById('urlInput');
 
 const ISSUE_URL = 'https://github.com/bbbbx/3d-tile-content-inspector/issues/new';
 
@@ -84,6 +86,9 @@ function buildFeedbackUrl() {
     `- Browser: ${navigator.userAgent}`,
     `- File: ${lastFile ? `${lastFile.name} (${lastFile.size} bytes)` : 'none'}`,
   ];
+  if (lastFile && lastFile.url) {
+    environment.push(`- URL: ${lastFile.url}`);
+  }
   if (errorElem.innerText) {
     environment.push(`- Error: ${errorElem.innerText}`);
   }
@@ -113,6 +118,8 @@ feedbackElem.addEventListener('click', () => {
 
 function inspectFromFile(file) {
   lastFile = { name: file.name, size: file.size };
+  // A local file can't be shared by link; drop a stale ?url=.
+  setUrlParam(null);
   setInfo('Loading...', true);
 
   const fileReader = new FileReader();
@@ -125,30 +132,89 @@ function inspectFromFile(file) {
   fileReader.readAsArrayBuffer(file);
 }
 
+// Keeps ?url= in the address bar in sync, so the current page is a
+// shareable link to the file being inspected.
+function setUrlParam(url) {
+  const pageUrl = new URL(location.href);
+  if (url) {
+    pageUrl.searchParams.set('url', url);
+  } else {
+    pageUrl.searchParams.delete('url');
+  }
+  history.replaceState(null, '', pageUrl);
+}
+
+function filenameFromUrl(url) {
+  const lastSegment = url.pathname.split('/').pop();
+  try {
+    return decodeURIComponent(lastSegment) || url.hostname;
+  } catch {
+    return lastSegment || url.hostname;
+  }
+}
+
+/**
+ * @param {string} url Absolute, or relative to this page (as the samples are).
+ */
 async function inspectFromUrl(url) {
-  const filename = url.split('/').pop();
+  const fetching = ++latestInspection;
   errorElem.innerText = '';
+  warningElem.innerText = '';
+
+  let resolvedUrl;
+  try {
+    resolvedUrl = new URL(url, location.href);
+  } catch {
+    errorElem.innerText = `Invalid URL: ${url}`;
+    return;
+  }
+  if (resolvedUrl.protocol !== 'http:' && resolvedUrl.protocol !== 'https:') {
+    errorElem.innerText = `Only http(s) URLs are supported: ${url}`;
+    return;
+  }
+
+  const filename = filenameFromUrl(resolvedUrl);
+  setUrlParam(url);
+  urlInput.value = resolvedUrl.href;
   setInfo('Loading...', true);
 
   let arrayBuffer;
   try {
-    const response = await fetch(url);
+    const response = await fetch(resolvedUrl);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
     }
     arrayBuffer = await response.arrayBuffer();
   } catch (error) {
+    if (fetching !== latestInspection) {
+      return;
+    }
     setInfo('');
-    errorElem.innerText = `Failed to load ${filename}: ${error.message}`;
+    // fetch() rejects with a TypeError for network and CORS failures.
+    const hint = error instanceof TypeError ? ' (network error, or the server does not allow cross-origin requests)' : '';
+    errorElem.innerText = `Failed to load ${resolvedUrl.href}: ${error.message}${hint}`;
+    return;
+  }
+  if (fetching !== latestInspection) {
     return;
   }
 
-  lastFile = { name: filename, size: arrayBuffer.byteLength };
+  lastFile = { name: filename, size: arrayBuffer.byteLength, url: resolvedUrl.href };
   return inspectFromArrayBuffer(arrayBuffer, filename);
 }
 
 for (const sampleElem of document.querySelectorAll('[data-sample]')) {
   sampleElem.addEventListener('click', () => inspectFromUrl(sampleElem.dataset.sample));
+}
+
+urlForm.addEventListener('submit', event => {
+  event.preventDefault();
+  inspectFromUrl(urlInput.value.trim());
+});
+
+const initialUrl = new URLSearchParams(location.search).get('url');
+if (initialUrl) {
+  inspectFromUrl(initialUrl);
 }
 
 function inspectFromArrayBuffer(arrayBuffer, filename) {

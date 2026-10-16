@@ -295,3 +295,31 @@ test('overlapping inspections each get their own result', async ({ page }) => {
   });
   expect(magics).toEqual(['b3dm', 'pnts']);
 });
+
+test('?url= loads a file on startup', async ({ page }) => {
+  await page.goto(url + '/src/?url=samples/composite.cmpt');
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"cmpt"/);
+  await expect(page.locator('#urlInput')).toHaveValue(url + '/src/samples/composite.cmpt');
+});
+
+test('can inspect a file from a URL and share it as a link', async ({ page }) => {
+  const fileUrl = url + '/tests/Cesium3DTiles/PointCloud/PointCloudRGB/pointCloudRGB.pnts';
+  await page.locator('#urlInput').fill(fileUrl);
+  await page.locator('#urlInput').press('Enter');
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
+  expect(new URL(page.url()).searchParams.get('url')).toBe(fileUrl);
+
+  // A local file is not shareable, so the parameter is dropped.
+  await page.locator('#file').setInputFiles(path.join(__dirname, 'glb/Box.glb'));
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"asset"/);
+  expect(new URL(page.url()).searchParams.has('url')).toBe(false);
+});
+
+test('reports URLs that cannot be loaded', async ({ page }) => {
+  await page.locator('#urlInput').fill(url + '/tests/missing.b3dm');
+  await page.getByRole('button', { name: 'Load' }).click();
+  await expect(page.locator('#error')).toContainText('404');
+
+  await page.goto(url + '/src/?url=' + encodeURIComponent('ftp://example.com/tile.b3dm'));
+  await expect(page.locator('#error')).toContainText('Only http(s) URLs are supported');
+});
