@@ -6,6 +6,7 @@ import { parsePnts } from "./parsePnts.js";
 import { parseCmpt } from "./parseCmpt.js";
 import { parseFeatureTableOrBatchTable } from "./parseFeatureTableOrBatchTable.js";
 import { constructHexViewer } from "./constructHexViewer.js";
+import { getByteLayout } from "./byteLayout.js";
 
 const hexViewer = document.getElementById('hexViewer');
 const ui = document.getElementById('ui');
@@ -24,7 +25,7 @@ function inspect(arrayBuffer, filename) {
       // then use TextDecoder to decode arraybuffer.
       // Decoding costs also expensive.
       const { hex, arrayBuffer } = event.data;
-      constructHexViewer(hex, hexViewer);
+      constructHexViewer(hex, hexViewer, getByteLayout(arrayBuffer), arrayBuffer.byteLength);
 
       try {
         const result = await inspectArrayBuffer(arrayBuffer, filename);

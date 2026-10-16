@@ -201,3 +201,69 @@ test('feedback link opens a prefilled GitHub issue', async ({ page }) => {
   expect(issueUrl.origin + issueUrl.pathname).toBe('https://github.com/bbbbx/3d-tile-content-inspector/issues/new');
   expect(issueUrl.searchParams.get('body')).toContain('- File: Box.glb');
 });
+
+test('start screen offers samples that can be inspected', async ({ page }) => {
+  await expect(page.locator("[id='hexViewer']")).toContainText('Load a file to see its bytes.');
+
+  await page.getByRole('button', { name: /\.pnts/ }).click();
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
+  await expect(page.locator("[id='hexViewer']")).toContainText(/pnts/);
+  await expect(page.getByRole('button', { name: /\.pnts/ })).toHaveCount(0);
+});
+
+// --sec-flash in style.css
+const FLASH_COLOR = 'rgb(255, 223, 93)';
+
+test('hex viewer colours sections and the legend jumps to them', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the hex viewer is hidden on narrow screens');
+  await page.setViewportSize({ width: 1600, height: 900 });
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByText('choose a file').click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(path.join(__dirname, 'Cesium3DTiles/Batched/BatchedColors/batchedColors.b3dm'));
+
+  const legend = page.locator('.hex-legend');
+  await expect(legend).toContainText('b3dm header');
+  await expect(legend).toContainText('Feature table JSON');
+  await expect(legend).toContainText('glTF BIN chunk');
+  await expect(page.locator('.hex-line').first()).toHaveClass(/sec-header/);
+
+  const glbItem = legend.locator('.hex-legend-item', { hasText: 'glTF header' });
+  const sectionId = await glbItem.getAttribute('data-target');
+  await glbItem.click();
+  const firstLine = page.locator(`.hex-line[data-section="${sectionId}"], .hex-line [data-section="${sectionId}"]`).first();
+  await expect(firstLine).toBeInViewport();
+  await expect(firstLine).toHaveCSS('background-color', FLASH_COLOR);
+});
+
+test('clicking a field in the JSON view reveals its bytes', async ({ page, isMobile }) => {
+  test.skip(isMobile, 'the hex viewer is hidden on narrow screens');
+  await page.setViewportSize({ width: 1600, height: 900 });
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByText('choose a file').click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(path.join(__dirname, 'Cesium3DTiles/Composite/Composite/composite.cmpt'));
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"cmpt"/);
+
+  // "featureTableJson" of tiles[1] (the i3dm), not tiles[0].
+  const point = await page.evaluate(() => {
+    const cm = document.querySelector('.CodeMirror').CodeMirror;
+    const lines = [];
+    for (let i = 0; i < cm.lineCount(); i++) {
+      if (/^\s*"featureTableJson":/.test(cm.getLine(i))) {
+        lines.push(i);
+      }
+    }
+    cm.scrollIntoView({ line: lines[1], ch: 0 }, 100);
+    const coords = cm.charCoords({ line: lines[1], ch: cm.getLine(lines[1]).indexOf('"') + 2 }, 'window');
+    return { x: coords.left, y: (coords.top + coords.bottom) / 2 };
+  });
+  await page.mouse.click(point.x, point.y);
+
+  const sectionId = await page.locator('.hex-legend-item', { hasText: 'tiles[1] · Feature table JSON' }).getAttribute('data-target');
+  const firstLine = page.locator(`.hex-line[data-section="${sectionId}"], .hex-line [data-section="${sectionId}"]`).first();
+  await expect(firstLine).toBeInViewport();
+  await expect(firstLine).toHaveCSS('background-color', FLASH_COLOR);
+});

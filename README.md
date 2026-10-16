@@ -13,6 +13,13 @@
 - [x] .glb
 - [x] draco
 
+## Features
+
+- Colour-coded hex viewer: headers, feature/batch tables and glTF chunks are highlighted, with a legend to jump to each section.
+- Click a field such as `featureTableJson` or `glb` in the JSON view to reveal its bytes.
+- Sample files on the start screen (see `src/samples/README.md` for sources and licenses).
+- Files are parsed locally in the browser and never uploaded.
+
 ## Dependencies
 
 - Draco

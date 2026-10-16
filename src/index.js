@@ -1,4 +1,5 @@
 import { inspect } from "./inspect.js";
+import { revealField } from "./constructHexViewer.js";
 
 const infoElem = document.getElementById('info');
 const errorElem = document.getElementById('error');
@@ -123,6 +124,32 @@ function inspectFromFile(file) {
   fileReader.readAsArrayBuffer(file);
 }
 
+async function inspectFromUrl(url) {
+  const filename = url.split('/').pop();
+  errorElem.innerText = '';
+  setInfo('Loading...', true);
+
+  let arrayBuffer;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    arrayBuffer = await response.arrayBuffer();
+  } catch (error) {
+    setInfo('');
+    errorElem.innerText = `Failed to load ${filename}: ${error.message}`;
+    return;
+  }
+
+  lastFile = { name: filename, size: arrayBuffer.byteLength };
+  return inspectFromArrayBuffer(arrayBuffer, filename);
+}
+
+for (const sampleElem of document.querySelectorAll('[data-sample]')) {
+  sampleElem.addEventListener('click', () => inspectFromUrl(sampleElem.dataset.sample));
+}
+
 function inspectFromArrayBuffer(arrayBuffer, filename) {
   errorElem.innerText = '';
   warningElem.innerText = '';
@@ -186,4 +213,62 @@ function constructJsonView(object) {
     },
     fullScreen:true
   });
+
+  // Clicking a field such as "featureTableJson" reveals its bytes in the hex viewer.
+  myCodeMirror.on('mousedown', (cm, event) => {
+    if (event.target.closest('.CodeMirror-gutters, .CodeMirror-gutter-wrapper')) {
+      return;
+    }
+    const { line } = cm.coordsChar({ left: event.clientX, top: event.clientY }, 'window');
+    const match = PROPERTY_LINE.exec(cm.getLine(line));
+    if (match) {
+      revealField(jsonPathOfLine(cm, line), JSON.parse(`"${match[1]}"`));
+    }
+  });
+}
+
+const PROPERTY_LINE = /^\s*"((?:[^"\\]|\\.)*)":/;
+const CONTAINER_OPEN_LINE = /^\s*"((?:[^"\\]|\\.)*)":\s*[[{]\s*$/;
+
+function indentOf(text) {
+  return text.length - text.trimStart().length;
+}
+
+/**
+ * Returns the path (e.g. ['tiles', 1]) of the object containing `line`,
+ * relying on the one-entry-per-line layout of JSON.stringify(value, null, 4).
+ */
+function jsonPathOfLine(cm, line) {
+  const path = [];
+  let indent = indentOf(cm.getLine(line));
+  // Line 0 is the root object itself and adds nothing to the path.
+  for (let l = line - 1; l > 0 && indent > 0; l--) {
+    const text = cm.getLine(l);
+    const lineIndent = indentOf(text);
+    if (lineIndent >= indent) {
+      continue;
+    }
+    // `l` opens the container of everything seen so far.
+    const match = CONTAINER_OPEN_LINE.exec(text);
+    path.unshift(match ? JSON.parse(`"${match[1]}"`) : arrayIndexOfLine(cm, l, lineIndent));
+    indent = lineIndent;
+  }
+  return path;
+}
+
+// Index of the array element starting at `line`: counts earlier siblings at
+// the same indent, skipping their closing brackets.
+function arrayIndexOfLine(cm, line, indent) {
+  let index = 0;
+  for (let l = line - 1; l >= 0; l--) {
+    const text = cm.getLine(l);
+    const lineIndent = indentOf(text);
+    if (lineIndent < indent) {
+      break;
+    }
+    if (lineIndent === indent && !/^\s*[\]}]/.test(text)) {
+      index++;
+    }
+  }
+  return index;
 }

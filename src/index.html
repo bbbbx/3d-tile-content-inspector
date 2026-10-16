@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>3d tile content inspector</title>
   <!-- <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" /> -->
   <script src="./thirdParty/codemirror-5.59.4/lib/codemirror.js"></script>
@@ -37,13 +38,26 @@
         <li>drag it anywhere on the window.</li>
       </ol>
     </div>
-    <p class="ui-note">NOTE: For performance, feature table can display up to 100 records, and hexadecimal viewer can display up to 512 kibibyte. See console for extracted attributes. <a id="feedback" href="https://github.com/bbbbx/3d-tile-content-inspector/issues/new" target="_blank" rel="noopener noreferrer" title="Report a bug or suggest an idea on GitHub">Feedback</a></p>
+    <p class="ui-note">NOTE: For performance, feature table can display up to 100 records, and hexadecimal viewer can display up to 512 kibibyte. See console for extracted attributes. Files are parsed locally in your browser and are never uploaded. <a id="feedback" href="https://github.com/bbbbx/3d-tile-content-inspector/issues/new" target="_blank" rel="noopener noreferrer" title="Report a bug or suggest an idea on GitHub">Feedback</a></p>
     <div id="info"></div>
     <div id="warning"></div>
     <div id="error"></div>
   </div>
-  <div id="jsonViewer"></div>
-  <div id="hexViewer"></div>
+  <div id="jsonViewer">
+    <div class="empty-state">
+      <h2>Inspect 3D Tiles content</h2>
+      <p>Choose or drop a file, or try one of these samples.</p>
+      <div class="sample-list">
+        <button type="button" class="sample" data-sample="samples/batchedColors.b3dm"><strong>.b3dm</strong><span>Batched 3D Model</span></button>
+        <button type="button" class="sample" data-sample="samples/instancedWithBatchTable.i3dm"><strong>.i3dm</strong><span>Instanced 3D Model</span></button>
+        <button type="button" class="sample" data-sample="samples/pointCloudRGB.pnts"><strong>.pnts</strong><span>Point Cloud</span></button>
+        <button type="button" class="sample" data-sample="samples/composite.cmpt"><strong>.cmpt</strong><span>Composite</span></button>
+        <button type="button" class="sample" data-sample="samples/Box_Draco.glb"><strong>.glb</strong><span>glTF with Draco</span></button>
+        <button type="button" class="sample" data-sample="samples/bunny.drc"><strong>.drc</strong><span>Draco mesh</span></button>
+      </div>
+    </div>
+  </div>
+  <div id="hexViewer"><div class="hex-empty">Load a file to see its bytes. Sections such as headers and feature tables are colour-coded.</div></div>
 
   <script type="module" src="./index.js"></script>
 </body>
