@@ -14,27 +14,45 @@ const warningElem = document.getElementById('warning');
 
 const hexDumpWorker = new Worker('./hexDump.js', { type: 'module' });
 
+// Requests are matched by id so that inspecting a second file before the
+// first one's dump comes back cannot mix up their results.
+const pendingHexDumps = new Map();
+let nextHexDumpId = 0;
+
+hexDumpWorker.onmessage = function(event) {
+  const { id, hex, arrayBuffer } = event.data;
+  const resolve = pendingHexDumps.get(id);
+  pendingHexDumps.delete(id);
+  if (resolve) {
+    resolve({ hex, arrayBuffer });
+  }
+};
+
+// The buffer is transferred to the worker and handed back with the dump.
+function hexDump(arrayBuffer) {
+  const id = nextHexDumpId++;
+  return new Promise(resolve => {
+    pendingHexDumps.set(id, resolve);
+    hexDumpWorker.postMessage({ id, arrayBuffer }, [ arrayBuffer ]);
+  });
+}
+
 const textDecoder = new TextDecoder('utf8');
 
-function inspect(arrayBuffer, filename) {
-  return new Promise((resolve, reject) => {
-    hexDumpWorker.postMessage(arrayBuffer, [ arrayBuffer ]);
-    hexDumpWorker.onmessage = async function(event) {
-      // FIXME: cost too expensive
-      // use TextEncoder to encode string to arraybuffer,
-      // then use TextDecoder to decode arraybuffer.
-      // Decoding costs also expensive.
-      const { hex, arrayBuffer } = event.data;
-      constructHexViewer(hex, hexViewer, getByteLayout(arrayBuffer), arrayBuffer.byteLength);
+async function inspect(arrayBuffer, filename) {
+  // FIXME: cost too expensive
+  // use TextEncoder to encode string to arraybuffer,
+  // then use TextDecoder to decode arraybuffer.
+  // Decoding costs also expensive.
+  const { hex, arrayBuffer: dumpedArrayBuffer } = await hexDump(arrayBuffer);
+  constructHexViewer(hex, hexViewer, getByteLayout(dumpedArrayBuffer), dumpedArrayBuffer.byteLength);
 
-      try {
-        const result = await inspectArrayBuffer(arrayBuffer, filename);
-        resolve(result);
-      } catch (error) {
-        reject(error && error.message ? error.message : String(error));
-      }
-    };
-  });
+  removeDownloadAnchor();
+  try {
+    return await inspectArrayBuffer(dumpedArrayBuffer, filename);
+  } catch (error) {
+    throw error && error.message ? error.message : String(error);
+  }
 }
 
 function inspectArrayBuffer(arrayBuffer, filename) {
@@ -80,28 +98,30 @@ async function extractFeatureTableAndBatchTable(parsedTile) {
   };
 }
 
-function createAnchorForDownload(arrayBuffer, filename) {
-  const blob = new Blob([ arrayBuffer ]);
-  const objectURL = URL.createObjectURL(blob);
-
+function createAnchorForDownload(objectURL, filename) {
   const anchor = document.createElement('a');
   anchor.innerText = 'Click to download '+ filename;
   anchor.setAttribute('id', 'download');
   anchor.setAttribute('href', objectURL);
   anchor.setAttribute('download', filename);
 
-  // TODO: call URL.revokeObjectURL(objectURL);
   return anchor;
 }
 
-function updateDownloadAnchor(arrayBuffer, filename) {
+// Removes the previous file's download link (if any) and frees its blob.
+function removeDownloadAnchor() {
   const oldAnchorElem = document.getElementById('download');
   if (oldAnchorElem) {
-    ui.removeChild(oldAnchorElem);
+    URL.revokeObjectURL(oldAnchorElem.href);
+    oldAnchorElem.remove();
   }
+}
 
-  const anchorElem = createAnchorForDownload(arrayBuffer, filename);
-  ui.appendChild(anchorElem);
+function updateDownloadAnchor(arrayBuffer, filename) {
+  removeDownloadAnchor();
+
+  const objectURL = URL.createObjectURL(new Blob([ arrayBuffer ]));
+  ui.appendChild(createAnchorForDownload(objectURL, filename));
 }
 
 async function inspectGlb(arrayBuffer) {

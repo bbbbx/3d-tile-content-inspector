@@ -37,9 +37,10 @@ function hexDump(arrayBuffer) {
 }
 
 onmessage = function(event) {
-  const arrayBuffer = event.data;
+  const { id, arrayBuffer } = event.data;
   const hex = hexDump(arrayBuffer);
   postMessage({
+    id,
     hex,
     arrayBuffer,
   }, [ arrayBuffer ]);

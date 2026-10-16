@@ -12,6 +12,7 @@ const ISSUE_URL = 'https://github.com/bbbbx/3d-tile-content-inspector/issues/new
 
 let dragging = false;
 let lastFile;
+let latestInspection = 0;
 
 function setInfo(text, loading = false) {
   infoElem.innerText = text;
@@ -151,17 +152,26 @@ for (const sampleElem of document.querySelectorAll('[data-sample]')) {
 }
 
 function inspectFromArrayBuffer(arrayBuffer, filename) {
+  // A later file may finish first (e.g. a slow Draco decode); only the most
+  // recent one is shown.
+  const inspection = ++latestInspection;
   errorElem.innerText = '';
   warningElem.innerText = '';
   setInfo('Parsing...', true);
 
   return inspect(arrayBuffer, filename)
     .then(result => {
+      if (inspection !== latestInspection) {
+        return;
+      }
       constructJsonView(result);
       setInfo('Done');
       errorElem.innerText = '';
     })
     .catch(msg => {
+      if (inspection !== latestInspection) {
+        return;
+      }
       setInfo('');
       errorElem.innerText = msg;
     });

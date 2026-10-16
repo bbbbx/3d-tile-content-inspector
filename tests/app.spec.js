@@ -267,3 +267,31 @@ test('clicking a field in the JSON view reveals its bytes', async ({ page, isMob
   await expect(firstLine).toBeInViewport();
   await expect(firstLine).toHaveCSS('background-color', FLASH_COLOR);
 });
+
+test('download link of a previous b3dm is removed when the next file has none', async ({ page }) => {
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByText('choose a file').click();
+  const fileChooser = await fileChooserPromise;
+
+  await fileChooser.setFiles(path.join(__dirname, 'Cesium3DTiles/Batched/BatchedColors/batchedColors.b3dm'));
+  await expect(page.locator('#download')).toHaveText('Click to download batchedColors.b3dm.glb');
+
+  await fileChooser.setFiles(path.join(__dirname, 'Cesium3DTiles/PointCloud/PointCloudRGB/pointCloudRGB.pnts'));
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"magic"\s*:\s*"pnts"/);
+  await expect(page.locator('#download')).toHaveCount(0);
+});
+
+test('overlapping inspections each get their own result', async ({ page }) => {
+  const magics = await page.evaluate(async () => {
+    const { inspect } = await import('./inspect.js');
+    const load = async file => (await fetch('../tests/' + file)).arrayBuffer();
+    const [b3dm, pnts] = await Promise.all([
+      load('Cesium3DTiles/Batched/BatchedColors/batchedColors.b3dm'),
+      load('Cesium3DTiles/PointCloud/PointCloudRGB/pointCloudRGB.pnts'),
+    ]);
+    // Start both before either hex dump comes back.
+    const results = await Promise.all([inspect(b3dm, 'a.b3dm'), inspect(pnts, 'b.pnts')]);
+    return results.map(result => result.magic);
+  });
+  expect(magics).toEqual(['b3dm', 'pnts']);
+});
