@@ -5,8 +5,12 @@ const errorElem = document.getElementById('error');
 const warningElem = document.getElementById('warning');
 const fileElem = document.getElementById('file');
 const jsonViewer = document.getElementById('jsonViewer');
+const feedbackElem = document.getElementById('feedback');
+
+const ISSUE_URL = 'https://github.com/bbbbx/3d-tile-content-inspector/issues/new';
 
 let dragging = false;
+let lastFile;
 
 function setInfo(text, loading = false) {
   infoElem.innerText = text;
@@ -71,7 +75,42 @@ fileElem.addEventListener('change', event => {
   inspectFromFile(file);
 });
 
+// Prefill the issue body with context the reporter would otherwise have to
+// collect by hand. Nothing is sent until the user submits it on GitHub.
+function buildFeedbackUrl() {
+  const environment = [
+    `- Browser: ${navigator.userAgent}`,
+    `- File: ${lastFile ? `${lastFile.name} (${lastFile.size} bytes)` : 'none'}`,
+  ];
+  if (errorElem.innerText) {
+    environment.push(`- Error: ${errorElem.innerText}`);
+  }
+  if (warningElem.innerText) {
+    environment.push(`- Warning: ${warningElem.innerText}`);
+  }
+
+  const body = [
+    '**Describe the problem**',
+    '',
+    '',
+    '**Steps to reproduce**',
+    '1. ',
+    '',
+    '**Environment**',
+    ...environment,
+  ].join('\n');
+
+  const url = new URL(ISSUE_URL);
+  url.searchParams.set('body', body);
+  return url.href;
+}
+
+feedbackElem.addEventListener('click', () => {
+  feedbackElem.href = buildFeedbackUrl();
+});
+
 function inspectFromFile(file) {
+  lastFile = { name: file.name, size: file.size };
   setInfo('Loading...', true);
 
   const fileReader = new FileReader();

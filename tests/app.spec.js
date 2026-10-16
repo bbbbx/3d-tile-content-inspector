@@ -182,3 +182,22 @@ test('can inspect point cloud draco by choosing file', async ({ page }) => {
   await expect(page.locator("[id='jsonViewer']")).toContainText(/"POSITION"/, { timeout: 3e4 });
   await expect(page.locator("[id='hexViewer']")).toContainText(/DRACO/);
 });
+
+test('feedback link opens a prefilled GitHub issue', async ({ page }) => {
+  // Don't hit GitHub from tests; just capture the URL the popup navigates to.
+  await page.context().route('https://github.com/**', route => route.fulfill({ body: '' }));
+
+  const fileChooserPromise = page.waitForEvent('filechooser');
+  await page.getByText('choose a file').click();
+  const fileChooser = await fileChooserPromise;
+  await fileChooser.setFiles(path.join(__dirname, 'glb/Box.glb'));
+  await expect(page.locator("[id='jsonViewer']")).toContainText(/"asset"/);
+
+  const popupPromise = page.waitForEvent('popup');
+  await page.getByRole('link', { name: 'Feedback' }).click();
+  const popup = await popupPromise;
+
+  const issueUrl = new URL(popup.url());
+  expect(issueUrl.origin + issueUrl.pathname).toBe('https://github.com/bbbbx/3d-tile-content-inspector/issues/new');
+  expect(issueUrl.searchParams.get('body')).toContain('- File: Box.glb');
+});

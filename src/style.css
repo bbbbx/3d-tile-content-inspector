@@ -190,6 +190,25 @@ code {
   color: var(--muted);
 }
 
+/* low-key: rarely used, so keep it out of the way */
+#feedback {
+  margin-left: 4px;
+  color: var(--muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+#feedback:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+#feedback:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
 /* status bars */
 #info:not(:empty),
 #warning:not(:empty),
